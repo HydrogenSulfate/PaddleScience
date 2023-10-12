@@ -24,9 +24,9 @@ from paddle import io
 from ppsci.data import dataloader
 from ppsci.data import dataset
 from ppsci.data import process
+from ppsci.data import sampler as sampler_mod
 from ppsci.data.process import batch_transform
 from ppsci.data.process import transform
-from ppsci.data.sampler import FPSBatchSampler
 from ppsci.utils import logger
 
 __all__ = [
@@ -78,9 +78,15 @@ def build_dataloader(_dataset, cfg):
                     f"Automatically use 'DistributedBatchSampler' instead of "
                     f"'BatchSampler' when world_size({world_size}) > 1"
                 )
-
+        elif sampler_cls == "FPSBatchSampler":
+            if world_size > 1:
+                sampler_cls = "DistributedFPSBatchSampler"
+                logger.warning(
+                    f"Automatically use 'DistributedFPSBatchSampler' instead of "
+                    f"'FPSBatchSampler' when world_size({world_size}) > 1"
+                )
         sampler_cfg["batch_size"] = cfg["batch_size"]
-        sampler = FPSBatchSampler(_dataset, **sampler_cfg)
+        sampler = getattr(sampler_mod, sampler_cls)(_dataset, **sampler_cfg)
     else:
         sampler = None
 

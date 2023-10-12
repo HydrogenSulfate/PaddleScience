@@ -16,8 +16,17 @@ from typing import Optional
 
 import numpy as np
 from paddle import io
+from paddle.io import BatchSampler
+from paddle.io import DistributedBatchSampler
 
 from ppsci.utils import misc
+
+__all__ = [
+    "BatchSampler",
+    "DistributedBatchSampler",
+    "FPSBatchSampler",
+    "DistributedFPSBatchSampler",
+]
 
 
 class FPSBatchSampler(io.BatchSampler):
@@ -45,9 +54,8 @@ class FPSBatchSampler(io.BatchSampler):
 
     def __iter__(self):
         rest_points = misc.convert_to_array(
-            self.dataset.input, ("x", "y")
-        )  # [N, 2] 集合A的剩余点数
-        # 记录原始集合A对应的下标（因为后面集合A是动态删点的，而返回的下标得是原始集合A的）
+            self.dataset.input, tuple(self.dataset.input.keys())
+        )
         rest_points_index = np.arange(len(rest_points))
 
         # shuffle manually
@@ -57,30 +65,125 @@ class FPSBatchSampler(io.BatchSampler):
             rest_points_index = rest_points_index[rand_perm]
 
         for batch_id in range(len(self)):
-            # 每次返回batch个点，这batch个点是用最远点采样法得到的轮廓点
             batch_indices = []
-            bary_center = np.mean(rest_points, axis=0)  # [3, ]得到集合A的重心点
-            distance = np.full(
-                (len(rest_points),), np.nan
-            )  # 维护一个数组，表示集合A中的每个点到集合B的最短(平方)距离
-            point = bary_center  # 虚拟初始点选为重心点，所以真正的第一个点是离重心最远的点
+            bary_center = np.mean(rest_points, axis=0)
+            distance = np.full((len(rest_points),), np.nan)
+            point = bary_center
 
             for point_i in range(min(self.batch_size, len(rest_points))):
                 print(distance.shape, rest_points.shape)
                 distance = np.minimum(
                     distance, np.sum((rest_points - point) ** 2, axis=1)
-                )  # 更新集合A到集合B的最短(平方)距离
-                index = np.argmax(distance)  # 选出离集合B最远(平方距离最大)的那个点
+                )
+                index = np.argmax(distance)
 
                 original_index = rest_points_index[index]
                 batch_indices.append(original_index)
 
-                # 使用比较高效的方式删除三个集合中index下标对应的数据
                 rest_points[index] = rest_points[-1]
                 rest_points = rest_points[:-1]
 
                 rest_points_index[index] = rest_points_index[-1]
                 rest_points_index = rest_points_index[:-1]
+
+                distance[index] = distance[-1]
+                distance = distance[:-1]
+
+            if len(batch_indices) == self.batch_size or not self.drop_last:
+                yield batch_indices
+
+            batch_indices = []
+
+
+class DistributedFPSBatchSampler(io.DistributedBatchSampler):
+    """Distributed batch sampler using Farthest Point Sampling for point cloud data.
+
+    Args:
+        dataset (io.Dataset): Point dataset.
+        batch_size (int): batch size.
+        shuffle (Optional[bool], optional): Whether to shuffle indices order before
+            generating batch indices. Defaults to False.
+        drop_last (Optional[bool], optional): Whether drop the last incomplete (less
+            than 1 mini-batch) batch dataset. Defaults to False.
+    """
+
+    def __init__(
+        self,
+        dataset: io.Dataset,
+        batch_size: int,
+        shuffle: Optional[bool] = False,
+        drop_last: Optional[bool] = False,
+    ):
+        super().__init__(dataset, batch_size, shuffle=shuffle, drop_last=drop_last)
+
+    def __iter__(self):
+        num_samples = len(self.dataset)
+        indices = np.arange(num_samples).tolist()
+        indices += indices[: (self.total_size - len(indices))]
+        assert (
+            len(indices) == self.total_size
+        ), f"len(indices){len(indices)} != self.total_size({self.total_size})"
+        if self.shuffle:
+            np.random.RandomState(self.epoch).shuffle(indices)
+            self.epoch += 1
+
+        # subsample
+        def _get_indices_by_batch_size(indices):
+            subsampled_indices = []
+            last_batch_size = self.total_size % (self.batch_size * self.nranks)
+            assert last_batch_size % self.nranks == 0
+            last_local_batch_size = last_batch_size // self.nranks
+
+            for i in range(
+                self.local_rank * self.batch_size,
+                len(indices) - last_batch_size,
+                self.batch_size * self.nranks,
+            ):
+                subsampled_indices.extend(indices[i : i + self.batch_size])
+
+            indices = indices[len(indices) - last_batch_size :]
+            subsampled_indices.extend(
+                indices[
+                    self.local_rank
+                    * last_local_batch_size : (self.local_rank + 1)
+                    * last_local_batch_size
+                ]
+            )
+            return subsampled_indices
+
+        if self.nranks > 1:
+            indices = _get_indices_by_batch_size(indices)
+
+        assert (
+            len(indices) == self.num_samples
+        ), f"len(indices){len(indices)} != self.num_samples({self.num_samples})"
+
+        local_rest_points = misc.convert_to_array(
+            self.dataset.input, tuple(self.dataset.input.keys())
+        )[indices]
+        local_rest_points_index = np.arange(len(local_rest_points))
+
+        for batch_id in range(len(self)):
+            batch_indices = []
+            bary_center = np.mean(local_rest_points, axis=0)
+            distance = np.full((len(local_rest_points),), np.nan)
+            point = bary_center
+
+            for point_i in range(min(self.batch_size, len(local_rest_points))):
+                print(distance.shape, local_rest_points.shape)
+                distance = np.minimum(
+                    distance, np.sum((local_rest_points - point) ** 2, axis=1)
+                )
+                index = np.argmax(distance)
+
+                original_index = local_rest_points_index[index]
+                batch_indices.append(original_index)
+
+                local_rest_points[index] = local_rest_points[-1]
+                local_rest_points = local_rest_points[:-1]
+
+                local_rest_points_index[index] = local_rest_points_index[-1]
+                local_rest_points_index = local_rest_points_index[:-1]
 
                 distance[index] = distance[-1]
                 distance = distance[:-1]
