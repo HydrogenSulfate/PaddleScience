@@ -26,6 +26,7 @@ from ppsci.data import dataset
 from ppsci.data import process
 from ppsci.data.process import batch_transform
 from ppsci.data.process import transform
+from ppsci.data.sampler import FPSBatchSampler
 from ppsci.utils import logger
 
 __all__ = [
@@ -79,7 +80,7 @@ def build_dataloader(_dataset, cfg):
                 )
 
         sampler_cfg["batch_size"] = cfg["batch_size"]
-        sampler = getattr(io, sampler_cls)(_dataset, **sampler_cfg)
+        sampler = FPSBatchSampler(_dataset, **sampler_cfg)
     else:
         sampler = None
 
