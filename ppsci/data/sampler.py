@@ -89,31 +89,3 @@ class FPSBatchSampler(io.BatchSampler):
                 yield batch_indices
 
             batch_indices = []
-
-
-# from ppsci.geometry import Rectangle
-# from ppsci.constraint import InteriorConstraint
-# from ppsci import loss
-# geo = Rectangle([-5, -5], [5, 5])
-
-# train_dataloader_cfg = {
-#     "dataset": "NamedArrayDataset",
-#     "iters_per_epoch": 5,
-#     "sampler": {
-#         "name": "BatchSampler",
-#         "drop_last": True,
-#         "shuffle": True,
-#     },
-#     "num_workers": 1,
-#     "batch_size": 50
-# }
-# cst = InteriorConstraint(
-#     {"z": lambda out: out["z"]},
-#     {"z": 0},
-#     geo,
-#     train_dataloader_cfg,
-#     loss.MSELoss(),
-# )
-
-# for input, label, weight in cst.data_loader:
-#     print(input.keys())
