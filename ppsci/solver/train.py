@@ -17,7 +17,7 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING
 
-import paddle
+from paddle import device
 from paddle.distributed.fleet.utils import hybrid_parallel_util as hpu
 
 from ppsci.solver import printer
@@ -125,7 +125,7 @@ def train_epoch_func(solver: "solver.Solver", epoch_id: int, log_freq: int):
             solver.lr_scheduler.step()
 
         if solver.benchmark_flag:
-            paddle.device.synchronize()
+            device.synchronize()
         batch_cost += time.perf_counter() - batch_tic
 
         # update and log training information
