@@ -333,8 +333,8 @@ class Solver:
 
         # log paddlepaddle's version
         if version.Version(paddle.__version__) != version.Version("0.0.0"):
+            paddle_version = paddle.__version__
             if version.Version(paddle.__version__) < version.Version("2.6.0"):
-                paddle_version = paddle.__version__
                 logger.warning(
                     f"Detected paddlepaddle version is '{paddle_version}', "
                     "currently it is recommended to use 2.6 or develop version."
