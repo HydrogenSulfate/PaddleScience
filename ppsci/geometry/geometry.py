@@ -75,6 +75,9 @@ class Geometry:
         """Sample random points in the geometry and return those meet criteria."""
         x = np.empty(shape=(n, self.ndim), dtype=paddle.get_default_dtype())
         _size, _ntry, _nsuc = 0, 0, 0
+        n_sampled = 0
+        n_tried = 0
+
         while _size < n:
             if evenly:
                 points = self.uniform_points(n)
@@ -83,10 +86,12 @@ class Geometry:
                     points = self.random_points(n, random, criteria)
                 else:
                     points = self.random_points(n, random)
+            n_tried += n
 
             if criteria is not None:
                 criteria_mask = criteria(*np.split(points, self.ndim, axis=1)).flatten()
                 points = points[criteria_mask]
+            n_sampled += len(points)
 
             if len(points) > n - _size:
                 points = points[: n - _size]
@@ -117,13 +122,17 @@ class Geometry:
             sdf_dict = {}
             sdf_derives_dict = {}
         x_dict = misc.convert_to_dict(x, self.dim_keys)
-
+        volume = (n_sampled / n_tried) * (0.1**2)
+        x_dict["area"] = np.full([n, 1], volume / n, paddle.get_default_dtype())
         return {**x_dict, **sdf_dict, **sdf_derives_dict}
 
     def sample_boundary(self, n, random="pseudo", criteria=None, evenly=False):
         """Compute the random points in the geometry and return those meet criteria."""
         x = np.empty(shape=(n, self.ndim), dtype=paddle.get_default_dtype())
         _size, _ntry, _nsuc = 0, 0, 0
+        n_sampled = 0
+        n_tried = 0
+
         while _size < n:
             if evenly:
                 if (
@@ -144,10 +153,12 @@ class Geometry:
                         points = self.random_boundary_points(n, random, criteria)
                     else:
                         points = self.random_boundary_points(n, random)
+            n_tried += n
 
             if criteria is not None:
                 criteria_mask = criteria(*np.split(points, self.ndim, axis=1)).flatten()
                 points = points[criteria_mask]
+            n_sampled += len(points)
 
             if len(points) > n - _size:
                 points = points[: n - _size]
@@ -182,6 +193,8 @@ class Geometry:
             area_dict = misc.convert_to_dict(area[:, 1:], ["area"])
             return {**x_dict, **normal_dict, **area_dict}
 
+        area = (n_sampled / n_tried) * (0.1 * 4)
+        x_dict["area"] = np.full([n, 1], area / n, paddle.get_default_dtype())
         return {**x_dict, **normal_dict}
 
     @abc.abstractmethod

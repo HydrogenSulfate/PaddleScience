@@ -14,6 +14,7 @@
 
 import copy
 from typing import TYPE_CHECKING
+from typing import Union
 
 from ppsci.data.dataset.airfoil_dataset import MeshAirfoilDataset
 from ppsci.data.dataset.array_dataset import IterableNamedArrayDataset
@@ -35,11 +36,16 @@ from ppsci.data.dataset.vtu_dataset import VtuDataset
 from ppsci.data.process import transform
 from ppsci.utils import logger
 
+from ppsci.data.dataset.array_dataset import (  # black:skip isort:skip # NOQA
+    ImportanceSamplingIterableNamedArrayDataset,  # black:skip isort:skip # NOQA
+)  # black:skip isort:skip # NOQA
+
 if TYPE_CHECKING:
     from paddle import io
 
 __all__ = [
     "IterableNamedArrayDataset",
+    "ImportanceSamplingIterableNamedArrayDataset",
     "NamedArrayDataset",
     "CSVDataset",
     "IterableCSVDataset",
@@ -60,7 +66,7 @@ __all__ = [
 ]
 
 
-def build_dataset(cfg) -> "io.Dataset":
+def build_dataset(cfg) -> Union["io.Dataset", "io.IterableDataset"]:
     """Build dataset
 
     Args:

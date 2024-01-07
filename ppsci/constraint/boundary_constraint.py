@@ -83,6 +83,7 @@ class BoundaryConstraint(base.Constraint):
         criteria: Optional[Callable] = None,
         evenly: bool = False,
         weight_dict: Optional[Dict[str, Union[float, Callable]]] = None,
+        importance_measure: Optional[Callable] = None,
         name: str = "BC",
     ):
         self.label_dict = label_dict
@@ -105,8 +106,9 @@ class BoundaryConstraint(base.Constraint):
             criteria,
             evenly,
         )
-        if "area" in input:
-            input["area"] *= dataloader_cfg["iters_per_epoch"]
+        if importance_measure is None:
+            if "area" in input:
+                input["area"] *= dataloader_cfg["iters_per_epoch"]
 
         # prepare label
         label = {}
@@ -160,6 +162,8 @@ class BoundaryConstraint(base.Constraint):
         dataloader_cfg["dataset"].update(
             {"input": input, "label": label, "weight": weight}
         )
+        if importance_measure is not None:
+            dataloader_cfg["dataset"].update({"importance_measure": importance_measure})
         _dataset = dataset.build_dataset(dataloader_cfg["dataset"])
 
         # construct dataloader with dataset and dataloader_cfg

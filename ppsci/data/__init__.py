@@ -15,6 +15,7 @@
 import copy
 import random
 from functools import partial
+from typing import Union
 
 import numpy as np
 import paddle.distributed as dist
@@ -54,7 +55,7 @@ def worker_init_fn(worker_id: int, num_workers: int, rank: int, base_seed: int) 
     random.seed(worker_seed)
 
 
-def build_dataloader(_dataset, cfg):
+def build_dataloader(_dataset: Union[io.Dataset, io.IterableDataset], cfg):
     world_size = dist.get_world_size()
     # just return IterableDataset as dataloader
     if isinstance(_dataset, io.IterableDataset):
