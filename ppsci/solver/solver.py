@@ -369,6 +369,18 @@ class Solver:
 
         logger.info(f"Using paddlepaddle {paddle_version} on device {self.device}")
 
+        # try to log paddlescience's commit id
+        commit_id = None
+        try:
+            import git
+
+            repo = git.Repo(search_parent_directories=True)
+            commit_id = repo.head.object.hexsha
+        except Exception:
+            pass
+
+        logger.info(f"Commit of PaddleScience: {commit_id}")
+
         self.forward_helper = expression.ExpressionSolver()
 
         # whether enable static for forward pass, defaults to False
