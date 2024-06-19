@@ -240,3 +240,5 @@ extra:
     - name: English
       link: /en/
       lang: en
+  version:
+    provider: mike
