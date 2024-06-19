@@ -30,4 +30,24 @@ jobs:
           restore-keys: |
             mkdocs-material-
       - run: pip install -r docs/requirements.txt
+      - run: pip install mike
       - run: mkdocs gh-deploy --force
+
+      - name: Deploy documentation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 获取当前分支名称
+          BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+          # 根据分支名称部署相应的文档版本
+          if [ "$BRANCH" == "deploy_in_gitpage" ]; then
+            VERSION="latest"
+            mike deploy --push --update-aliases $VERSION
+          elif [ "$BRANCH" == "release/1.2" ]; then
+            VERSION="release-1.2"
+            mike deploy --push --update-aliases $VERSION
+          fi
+
+          # 设置 latest 为默认版本
+          mike set-default --push latest

@@ -192,6 +192,7 @@ plugins:
       enable_creation_date: true
       fallback_to_build_date: true
       type: date
+  - mike
 
 # Extensions
 markdown_extensions:
