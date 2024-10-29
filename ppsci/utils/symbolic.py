@@ -27,6 +27,7 @@ from typing import Sequence
 from typing import Tuple
 from typing import Union
 
+import numpy as np
 import paddle
 import sympy as sp
 from paddle import nn
@@ -105,6 +106,8 @@ SYMPY_TO_PADDLE = {
     # NOTE: sp.Add and sp.Mul is not included here for un-alignment with paddle
     # and are implemented manually in 'OperatorNode._add_operator_func' and
     # 'OperatorNode._mul_operator_func'
+    sp.MatMul: paddle.matmul,
+    sp.MatAdd: paddle.add,
 }
 
 
@@ -120,9 +123,14 @@ def _cvt_to_key(expr: sp.Basic) -> str:
     if isinstance(expr, sp.Function) and str(expr.func) == equation.DETACH_FUNC_NAME:
         return f"{_cvt_to_key(expr.args[0])}_{equation.DETACH_FUNC_NAME}"
 
-    if isinstance(expr, (sp.Symbol, sp.core.function.UndefinedFunction, sp.Function)):
+    elif isinstance(expr, (sp.Symbol, sp.core.function.UndefinedFunction, sp.Function)):
         # use name of custom function(e.g. "f") instead of itself(e.g. "f(x, y)")
         # for simplicity.
+        if hasattr(expr, "name"):
+            return expr.name
+        else:
+            return str(expr)
+    elif isinstance(expr, sp.MatrixSymbol):
         if hasattr(expr, "name"):
             return expr.name
         else:
@@ -446,12 +454,14 @@ class ConstantNode(Node):
             or self.expr.is_Rational
         ):
             self.expr = float(self.expr)
+        if isinstance(expr, sp.ImmutableDenseMatrix):
+            self.expr = np.asarray(expr.__array__(), dtype=paddle.get_default_dtype())
         else:
             raise TypeError(
-                "expr({expr}) should be Float/Integer/Boolean/Rational, "
+                "expr({expr}) should be Float/Integer/Boolean/Rational/ImmutableDenseMatrix, "
                 f"but got {type(self.expr)}"
             )
-        self.expr = paddle.to_tensor(self.expr)
+        self.expr = paddle.to_tensor(self.expr, dtype=paddle.get_default_dtype())
 
     def forward(self, data_dict: DATA_DICT) -> DATA_DICT:
         # use cache
@@ -523,6 +533,12 @@ def _post_traverse(cur_node: sp.Basic, nodes: List[sp.Basic]) -> List[sp.Basic]:
         nodes = _post_traverse(cur_node.args[0], nodes)
         nodes.append(cur_node)
     elif isinstance(cur_node, sp.Symbol):
+        nodes.append(cur_node)
+        return nodes
+    elif isinstance(cur_node, sp.MatrixSymbol):
+        nodes.append(cur_node)
+        return nodes
+    elif isinstance(cur_node, sp.ImmutableDenseMatrix):
         nodes.append(cur_node)
         return nodes
     elif isinstance(cur_node, sp.Number):
@@ -796,10 +812,23 @@ def lambdify(
 
         # remove unnecessary symbol nodes already in input dict(except for parameter symbol)
         _parameter_names = tuple(param.name for param in extra_parameters)
+
+        def is_symbol(node: sp.Basic) -> bool:
+            # now allow symbolic matrix
+            return node.is_symbol or (node.is_Matrix and node.is_symbol)
+
+        def is_constant(node: sp.Basic) -> bool:
+            # now allow symbolic matrix
+            return (
+                node.is_Number
+                or node.is_NumberSymbol
+                or (isinstance(node, sp.ImmutableDenseMatrix))
+            )
+
         sympy_nodes = [
             node
             for node in sympy_nodes
-            if (not node.is_Symbol) or (_cvt_to_key(node) in _parameter_names)
+            if (not is_symbol(node)) or (_cvt_to_key(node) in _parameter_names)
         ]
 
         # remove duplicated node(s) with topological order kept
@@ -844,9 +873,9 @@ def lambdify(
                         raise ValueError(
                             f"Node {node} can not match any model in given model(s)."
                         )
-            elif node.is_Number or node.is_NumberSymbol:
+            elif is_constant(node):
                 callable_nodes.append(ConstantNode(node))
-            elif isinstance(node, sp.Symbol):
+            elif is_symbol(node):
                 callable_nodes.append(
                     ParameterNode(
                         node,
