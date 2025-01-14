@@ -1,0 +1,122 @@
+defaults:
+  - ppsci_default
+  - TRAIN: train_default
+  - TRAIN/ema: ema_default
+  - TRAIN/swa: swa_default
+  - EVAL: eval_default
+  - INFER: infer_default
+  - hydra/job/config/override_dirname/exclude_keys: exclude_keys_default
+  - _self_
+
+hydra:
+  run:
+    # dynamic output directory according to running time and override name
+    dir: outputs_ns_unsteady_cylinder/${now:%Y-%m-%d}/${now:%H-%M-%S}/${hydra.job.override_dirname}
+  job:
+    name: ${mode} # name of logfile
+    chdir: false # keep current working directory unchanged
+  callbacks:
+    init_callback:
+      _target_: ppsci.utils.callbacks.InitCallback
+  sweep:
+    # output directory for multirun
+    dir: ${hydra.run.dir}
+    subdir: ./
+
+# general settings
+prim: true # run gelu_grad_grad
+mode: train # running mode: train/eval
+seed: 42
+output_dir: ${hydra:run.dir}
+log_freq: 100
+use_tbd: false
+
+# working conditions
+U_star: 1.0  # characteristic velocity
+L_star: 0.1  # characteristic length
+T_star: 0.1  # final time
+NUM_TIME_WINDOWS: 10
+
+# model settings
+MODEL:
+  input_keys: ["t", "x", "y"]
+  output_keys: ["u", "v", "p"]
+  num_layers: 5
+  hidden_size: 256
+  activation: gelu
+  fourier:
+    scale: 1.0
+    dim: 256
+  random_weight:
+    mean: 1.0
+    std: 0.1
+
+# training settings
+TRAIN:
+  epochs: 200
+  iters_per_epoch: 1000
+  save_freq: 50
+  eval_during_train: false
+  eval_freq: 1
+  lr_scheduler:
+    epochs: ${TRAIN.epochs}
+    iters_per_epoch: ${TRAIN.iters_per_epoch}
+    learning_rate: 1.0e-3
+    gamma: 0.9
+    decay_steps: 2000
+    by_epoch: false
+  batch_size:
+    inflow: 2048
+    outflow: 2048
+    noslip: 2048
+    ic: 2048
+    res: 4096
+  pretrained_model_path: null
+  checkpoint_path: null
+  grad_norm:
+    update_freq: 1000
+    momentum: 0.9
+    init_weights:
+      - 1.0 # "rc"
+      - 1.0 # "ru"
+      - 1.0 # "rv"
+
+      - 100.0 # "u_in"
+      - 100.0 # "v_in"
+
+      - 1.0 # "u_out"
+      - 1.0 # "v_out"
+
+      - 10.0 # "u_noslip"
+      - 10.0 # "v_noslip"
+
+      - 100.0 # "u_ic"
+      - 100.0 # "v_ic"
+      - 100.0 # "p_ic"
+  causal:
+    tol: 1.0
+    n_chunks: 16
+
+# evaluation settings
+EVAL:
+  pretrained_model_path: null
+  eval_with_no_grad: true
+  batch_size: 4096
+
+# inference settings
+INFER:
+  pretrained_model_path: null
+  export_path: ./inference/ldc_2d_re3200
+  pdmodel_path: ${INFER.export_path}.pdmodel
+  pdiparams_path: ${INFER.export_path}.pdiparams
+  onnx_path: ${INFER.export_path}.onnx
+  device: gpu
+  engine: native
+  precision: fp32
+  ir_optim: true
+  min_subgraph_size: 5
+  gpu_mem: 2000
+  gpu_id: 0
+  max_batch_size: 1024
+  num_cpu_threads: 10
+  batch_size: 1024
