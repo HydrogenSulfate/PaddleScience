@@ -1,7 +1,0 @@
-numpy
-pyaml
-tqdm
-matplotlib
-sklearn
-mat73
-paddlepaddle-gpu

@@ -1,5 +1,0 @@
-bottleneck
-cartopy
-dask
-netCDF4
-xarray

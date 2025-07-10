@@ -226,26 +226,26 @@ def train(cfg: DictConfig):
     }
 
     # initialize adam solver
-    solver_adam = ppsci.solver.Solver(
-        disp_net,
-        constraint,
-        cfg.output_dir,
-        optimizer_adam,
-        None,
-        cfg.TRAIN.epochs,
-        cfg.TRAIN.iters_per_epoch,
-        save_freq=cfg.TRAIN.save_freq,
-        log_freq=cfg.log_freq,
-        seed=cfg.seed,
-        equation=equation,
-        geom=geom,
-        checkpoint_path=cfg.TRAIN.checkpoint_path,
-        pretrained_model_path=cfg.TRAIN.pretrained_model_path,
-    )
-    # train model
-    solver_adam.train()
-    # plot loss
-    solver_adam.plot_loss_history(by_epoch=True)
+    # solver_adam = ppsci.solver.Solver(
+    #     disp_net,
+    #     constraint,
+    #     cfg.output_dir,
+    #     optimizer_adam,
+    #     None,
+    #     cfg.TRAIN.epochs,
+    #     cfg.TRAIN.iters_per_epoch,
+    #     save_freq=cfg.TRAIN.save_freq,
+    #     log_freq=cfg.log_freq,
+    #     seed=cfg.seed,
+    #     equation=equation,
+    #     geom=geom,
+    #     checkpoint_path=cfg.TRAIN.checkpoint_path,
+    #     pretrained_model_path=cfg.TRAIN.pretrained_model_path,
+    # )
+    # # train model
+    # solver_adam.train()
+    # # plot loss
+    # solver_adam.plot_loss_history(by_epoch=True)
     # initialize lbfgs solver
     solver_lbfgs = ppsci.solver.Solver(
         disp_net,
