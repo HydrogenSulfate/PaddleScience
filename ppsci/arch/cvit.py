@@ -572,10 +572,10 @@ def dot_product_attention(
         assert key.ndim == query.ndim == value.ndim, "q, k, v must have same rank."
         assert (
             query.shape[:-3] == key.shape[:-3] == value.shape[:-3]
-        ), "q, k, v batch dims must match."
+        ), f"q({query.shape}), k({key.shape}), v({value.shape}) batch dims must match."
         assert (
             query.shape[-2] == key.shape[-2] == value.shape[-2]
-        ), "q, k, v num_heads must match."
+        ), f"q({query.shape}), k({key.shape}), v({value.shape}) num_heads must match."
         assert key.shape[-3] == value.shape[-3], "k, v lengths must match."
 
     # compute attention weights
@@ -600,8 +600,7 @@ class MultiHeadDotProductAttention(nn.Layer):
         out_features: dimension of the last projection
         use_bias: bool: whether pointwise QKVO dense transforms use bias.
         attention_fn: dot_product_attention or compatible function. Accepts query,
-            key, value, and returns output of shape [bs, dim1, dim2, ..., dimN,,
-            num_heads, value_channels]`
+            key, value, and returns output of shape `[bs, dim1, dim2, ..., dimN, num_heads, value_channels]`
         normalize_qk: should QK normalization be applied (arxiv.org/abs/2302.05442).
     """
 

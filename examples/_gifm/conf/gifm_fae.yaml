@@ -25,64 +25,82 @@ hydra:
 
 # general settings
 mode: train # running mode: train/eval
+stage: fae # fae
 seed: 42
 output_dir: ${hydra:run.dir}
 log_freq: 100
 
-DATA_PATH: ./dataset/allen_cahn.mat
+DATA_PATH: "/gnodiff/fundiff/turbulence_mass_transfer/tmt.npy"
+num_train: 900
 
 # model settings
 MODEL:
-  input_keys: [t, x]
+  input_keys: [coords, x]
   output_keys: [u]
-  num_blocks: 3
-  hidden_size: 256
-  activation: tanh
-  periods:
-    x: [2.0, false]
-  fourier:
-    dim: 256
-    scale: 2.0
-  random_weight:
-    mean: 1.0
-    std: 0.1
+  # x_dim: [2, 200, 100, 1]
+  # c_dim: [2, 256, 512]
+
+  encoder:
+    in_dim: 1
+    patch_size: [10, 5]
+    emb_dim: 256
+    num_latents: 256
+    grid_size: [200, 100]
+    depth: 8
+    num_heads: 8
+    mlp_ratio: 2
+    layer_norm_eps: 1e-05
+  decoder:
+    in_dim: 2
+    period: null
+    fourier_freq: 1.0
+    dec_emb_dim: 256
+    dec_depth: 4
+    dec_num_heads: 8
+    mlp_ratio: 2
+    num_mlp_layers: 2
+    out_dim: 1
+    layer_norm_eps: 1e-05
 
 # training settings
 TRAIN:
-  epochs: 300
-  iters_per_epoch: 1000
-  save_freq: 10
-  eval_during_train: true
+  steps: 100000
+  epochs: 5000
+  iters_per_epoch: -1
+  num_queries: 1024
+  solution: [1, 2, 4]
+  save_freq: 50
+  eval_during_train: false
   eval_freq: 10
   optim: adam
+  beta1: 0.9
+  beta2: 0.999
+  eps: 1e-8
+  weight_decay: 1e-5
+  clip_norm: 1.0
+
   lr_scheduler:
-    epochs: ${TRAIN.epochs}
-    iters_per_epoch: ${TRAIN.iters_per_epoch}
-    learning_rate: 1.0e-3
+    # epochs: ${TRAIN.epochs}
+    learning_rate: 0.001
     gamma: 0.9
-    decay_steps: 5000
+    decay_steps: 1000
     by_epoch: false
-    warmup_epoch: 0
-  batch_size: 8192
+    warmup_epoch: 1000
+
+  batch_size: 64
   pretrained_model_path: null
   checkpoint_path: null
-  causal:
-    n_chunks: 32
-    tol: 1.0
-  grad_norm:
-    update_freq: 1000
-    momentum: 0.9
 
 # evaluation settings
 EVAL:
   pretrained_model_path: null
   eval_with_no_grad: true
-  batch_size: 4096
+  batch_size: 4
 
 # inference settings
 INFER:
-  pretrained_model_path: https://paddle-org.bj.bcebos.com/paddlescience/models/AllenCahn/allen_cahn_piratenet_pretrained.pdparams
-  export_path: ./inference/allen_cahn
+  pretrained_model_path:
+  export_path: ./inference/gifm_fae
   pdmodel_path: ${INFER.export_path}.pdmodel
   pdiparams_path: ${INFER.export_path}.pdiparams
   onnx_path: ${INFER.export_path}.onnx
