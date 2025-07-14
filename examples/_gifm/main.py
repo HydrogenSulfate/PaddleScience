@@ -157,9 +157,10 @@ def train_diffusion(cfg: DictConfig):
     dit = DiT(**cfg.DIT)
 
     class ModelWrapper(paddle.nn.Layer):
-        def __init__(self, enc: Encoder, dit: DiT):
+        def __init__(self, enc: Encoder, dec: Decoder, dit: DiT):
             super().__init__()
             self.enc = enc
+            self.dec = dec
             self.dit = dit
 
         def forward(self, batch: Dict[str, paddle.Tensor]):
@@ -363,7 +364,7 @@ def evaluate(cfg: DictConfig):
     x_coords, y_coords = np.meshgrid(x_coords, y_coords, indexing="ij")
     coords = np.hstack([x_coords.reshape(-1, 1), y_coords.reshape(-1, 1)])[None, ...]
 
-    # noise_level = 1.0
+    noise_level = 1.0
     d = 2
     u_input_list = []
     v_input_list = []
@@ -405,8 +406,8 @@ def evaluate(cfg: DictConfig):
         logger.debug(f"p.shape = {p.shape}")
         logger.debug(f"sdf.shape = {sdf.shape}")
 
-        u = u  # + noise_level * paddle.randn(u.shape)
-        v = v  # + noise_level * paddle.randn(v.shape)
+        u = u + noise_level * paddle.randn(u.shape)
+        v = v + noise_level * paddle.randn(v.shape)
 
         z_u = encoder(u)
         logger.debug(f"z_u.shape = {z_u.shape}")
@@ -475,7 +476,7 @@ def evaluate(cfg: DictConfig):
 
     # Visualization of some examples
     k = 0
-    # fig = plt.figure(figsize=(17, 4))
+    _ = plt.figure(figsize=(17, 4))
     plt.subplot(1, 4, 1)
     plt.title("Input")
     plt.imshow(u_input[k, :, :].T, cmap="jet")
@@ -501,7 +502,7 @@ def evaluate(cfg: DictConfig):
     plt.close()
 
     k = 0
-    # fig = plt.figure(figsize=(17, 4))
+    _ = plt.figure(figsize=(17, 4))
     plt.subplot(1, 4, 1)
     plt.title("Input")
     plt.imshow(u_input[k, :, :].T, cmap="jet")

@@ -259,7 +259,9 @@ class Encoder(base.Arch):
                 self.grid_size[1] // self.patch_size[1],
             ),
         )
-        self.register_buffer("pos_emb", pos_emb)
+        self.pos_emb = self.create_parameter(
+            pos_emb.shape, default_initializer=nn.initializer.Assign(pos_emb)
+        )
         self.perceive_block = PerciverBlock(
             emb_dim=self.emb_dim,
             depth=2,
@@ -459,7 +461,13 @@ class DiTBlock(nn.Layer):
 
         self.ln1 = nn.LayerNorm(self.emb_dim, weight_attr=False, bias_attr=False)
         self.ln2 = nn.LayerNorm(self.emb_dim, weight_attr=False, bias_attr=False)
+
         self.attn = MultiHeadDotProductAttention(self.emb_dim, self.num_heads)
+        for layer in self.attn.sublayers():
+            if isinstance(layer, nn.Linear):
+                initializer.xavier_uniform_(layer.weight)
+                initializer.zeros_(layer.bias)
+
         self.mlp_block = MlpBlock(
             self.emb_dim, self.emb_dim * self.mlp_ratio, self.emb_dim
         )
@@ -511,12 +519,12 @@ class TimestepEmbedder(nn.Layer):
         self.emb_dim = emb_dim
         self.frequency_embedding_size = frequency_embedding_size
         self.fc1 = nn.Linear(self.frequency_embedding_size, self.emb_dim)
-        initializer.normal_(self.fc1.weight)
-        initializer.zeros_(self.fc1.weight)
+        initializer.normal_(self.fc1.weight, std=0.02)
+        initializer.zeros_(self.fc1.bias)
 
         self.fc2 = nn.Linear(self.emb_dim, self.emb_dim)
-        initializer.normal_(self.fc2.weight)
-        initializer.zeros_(self.fc2.weight)
+        initializer.normal_(self.fc2.weight, std=0.02)
+        initializer.zeros_(self.fc2.bias)
 
     def forward(self, t):
         # logger.debug(f"t.shape: {t.shape}")
@@ -617,8 +625,9 @@ class DiT(base.Arch):
             self.emb_dim,
             self.seq_len,
         )
-        self.register_buffer("pos_emb", pos_emb)
-
+        self.pos_emb = self.create_parameter(
+            pos_emb.shape, default_initializer=nn.initializer.Assign(pos_emb)
+        )
         self.fc1 = nn.Linear(self.in_dim, self.emb_dim)
         if with_condition:
             self.fc2 = nn.Linear(self.in_dim, self.emb_dim)
