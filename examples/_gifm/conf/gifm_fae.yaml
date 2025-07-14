@@ -69,7 +69,7 @@ TRAIN:
   iters_per_epoch: -1
   num_queries: 1024
   solution: [1, 2, 4]
-  save_freq: 50
+  save_freq: 0
   eval_during_train: false
   eval_freq: 10
   optim: adam

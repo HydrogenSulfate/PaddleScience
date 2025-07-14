@@ -227,7 +227,7 @@ class Arch(nn.Layer):
             >>> model.freeze()
             >>> assert not model.training
             >>> for p in model.parameters():
-            ...     assert p.stop_gradient
+            ...     assert p.stop_gradient and not p.training
 
         """
         for param in self.parameters():

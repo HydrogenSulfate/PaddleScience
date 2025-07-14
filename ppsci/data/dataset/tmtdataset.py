@@ -41,18 +41,27 @@ class TMTDataset(paddle.io.Dataset):
         data_path: str,
         num_train: int,
         mode: Literal["train", "test"] = "train",
+        stage: Literal["fae", "dit"] = "fae",
     ):
         self.input_keys = input_keys
         self.label_keys = label_keys
         self.data_path = data_path
         self.num_train = num_train
         self.mode = mode
-        train_outputs, test_outputs, mean, std = self._get_dataset(data_path)
-        train_outputs = rearrange(train_outputs, "b h w c -> (b c) h w")  # [b4, h, w]
-        test_outputs = rearrange(test_outputs, "b h w c -> (b c) h w")  # [b4, h, w]
+        self.stage = stage
 
-        self.train_outputs = train_outputs[..., None]  # [b4, h, w, 1]
-        self.test_outputs = test_outputs[..., None]  # [b4, h, w, 1]
+        train_outputs, test_outputs, mean, std = self._get_dataset(data_path)
+
+        if self.stage == "fae":
+            train_outputs = rearrange(
+                train_outputs, "b h w c -> (b c) h w"
+            )  # [b4, h, w]
+            test_outputs = rearrange(test_outputs, "b h w c -> (b c) h w")  # [b4, h, w]
+            self.train_outputs = train_outputs[..., None]  # [b4, h, w, 1]
+            self.test_outputs = test_outputs[..., None]  # [b4, h, w, 1]
+        else:
+            self.train_outputs = train_outputs  # [b, h, w, 4]
+            self.test_outputs = test_outputs  # [b, h, w, 4]
 
     def __getitem__(self, idx: int | List[int]) -> np.ndarray:
         if self.mode == "train":
@@ -111,28 +120,29 @@ class BatchParser:
         )  # (h * w, 2)
 
     def random_query(self, batch: paddle.Tensor, downsample: int = 1):
-        batch_inputs = batch  # [b, h, w, 1]
+        batch_inputs = batch  # [b4, h, w, 1]
         b, h, w, c = batch.shape
-        # batch_outputs = rearrange(batch, "b h w c -> b (h w) c") # [b, hw, 1]
-        batch_outputs = paddle.reshape(batch, [b, -1, c])  # [b, hw, 1]
+        batch_outputs = paddle.reshape(batch, [b, -1, c])  # [b4, hw, 1]
 
         query_index = np.random.choice(
             batch_outputs.shape[1], size=(self.num_query_points,), replace=False
         )  # [num_query_points]
 
-        batch_coords = self.coords[query_index][None, ...]  # [num_query_points, 2]
-        batch_outputs = batch_outputs[:, query_index]  # [b, num_query_points, 1]
+        batch_coords = self.coords[query_index][None, ...]  # [1, num_query_points, 2]
+        batch_outputs = batch_outputs[:, query_index]  # [b4, num_query_points, 1]
 
         # Downsample the inputs
         if len(self.solution) == 1:
-            batch_inputs = batch_inputs[:, ::downsample, ::downsample]  # [b, h', w', 1]
+            sol = self.solution[0]
         else:
             sol = np.random.choice(self.solution)
-            batch_inputs = batch_inputs[:, ::sol, ::sol]  # [b, h', w', 1]
+
+        if sol != 1:
+            batch_inputs = batch_inputs[:, ::sol, ::sol]  # [b4, h', w', 1]
 
         # batch_coords: [1, num_query_points, 2]
-        # batch_inputs: [b, h', w', 1]
-        # batch_outputs: [b, num_query_points, 1]
+        # batch_inputs: [b4, h', w', 1]
+        # batch_outputs: [b4, num_query_points, 1]
         return (
             {
                 "coords": paddle.to_tensor(batch_coords),
@@ -141,6 +151,36 @@ class BatchParser:
             },
             {
                 "u": batch_outputs,
+            },
+            None,
+        )
+
+    def random_downsample(self, batch: paddle.Tensor, downsample: int = 1):
+        u, v, p, sdf = batch.split(4, axis=-1)  # [b, h, w, 1]
+
+        # Downsample the inputs
+        if len(self.solution) == 1:
+            sol = self.solution[0]
+        else:
+            sol = np.random.choice(self.solution)
+
+            # batch_inputs = batch_inputs[:, ::sol, ::sol]  # [b4, h', w', 1]
+
+        if sol != 1:
+            u = u[:, ::downsample, ::downsample]
+            v = v[:, ::downsample, ::downsample]
+            sdf = sdf[:, ::downsample, ::downsample]
+            p = p[:, ::downsample, ::downsample]
+
+        return (
+            {
+                "u": u,
+                "v": v,
+                "p": p,
+                "sdf": sdf,
+            },
+            {
+                "v_t_err": 0,
             },
             None,
         )

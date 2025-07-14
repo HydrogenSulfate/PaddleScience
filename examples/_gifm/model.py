@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-# import numpy as np
+import numpy as np
 import paddle
 import paddle.nn as nn
 import paddle.nn.functional as F
@@ -259,9 +259,7 @@ class Encoder(base.Arch):
                 self.grid_size[1] // self.patch_size[1],
             ),
         )
-        self.pos_emb = self.create_parameter(
-            pos_emb.shape, default_initializer=nn.initializer.Assign(pos_emb)
-        )
+        self.register_buffer("pos_emb", pos_emb)
         self.perceive_block = PerciverBlock(
             emb_dim=self.emb_dim,
             depth=2,
@@ -287,7 +285,7 @@ class Encoder(base.Arch):
 
         # Patch embedding
         x = self.patch_embedding(x)
-        logger.debug(f"x.shape = {x.shape}")
+        # logger.debug(f"x.shape = {x.shape}")
 
         # Interpolate positional embeddings to match the input shape
         pos_emb_interp = self.pos_emb.reshape(
@@ -298,7 +296,7 @@ class Encoder(base.Arch):
                 self.emb_dim,
             ]
         )
-        logger.debug(f"pos_emb_interp.shape = {pos_emb_interp.shape}")
+        # logger.debug(f"pos_emb_interp.shape = {pos_emb_interp.shape}")
         pos_emb_interp = F.interpolate(
             pos_emb_interp,
             [h // self.patch_size[0], w // self.patch_size[1]],
@@ -384,16 +382,19 @@ class Decoder(base.Arch):
         if self.period is True:
             # Hardcode the periodicity, assuming the domain is [0, 1]x[0, 1]
             coords = self.period_embed(coords)
-        logger.debug(f"coords.shape = {coords.shape}")
+        # logger.debug(f"coords.shape = {coords.shape}")
 
         coords = self.fourier_embed(coords)
+        assert coords.ndim == 3, coords.shape
+        assert coords.shape[0] == 1, coords.shape
+        logger.debug(f"x.shape = {x.shape}, coords.shape = {coords.shape}")
         coords = paddle.expand(coords, [b, *coords.shape[1:]])
-        logger.debug(f"coords.shape = {coords.shape}")
+        # logger.debug(f"coords.shape = {coords.shape}")
         # coords = repeat(coords, "d -> b n d", n=1, b=b)
 
         x = self.fc(x)
 
-        logger.debug(f"x.shape = {x.shape}")
+        # logger.debug(f"x.shape = {x.shape}")
         for i in range(self.dec_depth):
             coords = self.cross_attn_blocks[i](coords, x)
 
@@ -413,21 +414,21 @@ class FAE(base.Arch):
 
     def forward(self, batch: Dict[str, paddle.Tensor]):
         coords, x = batch[self.input_keys[0]], batch[self.input_keys[1]]
-        logger.debug(f"coords.shape = {coords.shape}")
-        logger.debug(f"x.shape = {x.shape}")
+        # logger.debug(f"coords.shape = {coords.shape}")
+        # logger.debug(f"x.shape = {x.shape}")
         # coords: [1, num_query_points, 2] # 随机给定 num_query_points 个查询点
         # x: [b, h, w, 1]: 随机给定 h x w分辨率的物理场
         # y: [b, num_query_points, 1]: num_query_points 个查询点对应的物理场的值
         z = self.enc(x)  # [b, l, c]
-        logger.debug(f"z.shape = {z.shape}")
+        # logger.debug(f"z.shape = {z.shape}")
 
         u_pred = self.dec(z, coords)
         return {self.output_keys[0]: u_pred}
 
 
-"""
+"""""" """""" """""" """""
 DiT modules below
-"""
+""" """""" """""" """""" ""
 
 
 def modulate(x, shift, scale):
@@ -445,6 +446,7 @@ class DiTBlock(nn.Layer):
         num_heads: int,
         mlp_ratio: float = 4.0,
     ):
+        super().__init__()
         self.emb_dim = emb_dim
         self.num_heads = num_heads
         self.mlp_ratio = mlp_ratio
@@ -455,30 +457,43 @@ class DiTBlock(nn.Layer):
         initializer.zeros_(self.fc1.weight)
         initializer.zeros_(self.fc1.bias)
 
-        self.ln1 = nn.LayerNorm(weight_attr=False, bias_attr=False)
-        self.ln2 = nn.LayerNorm(weight_attr=False, bias_attr=False)
+        self.ln1 = nn.LayerNorm(self.emb_dim, weight_attr=False, bias_attr=False)
+        self.ln2 = nn.LayerNorm(self.emb_dim, weight_attr=False, bias_attr=False)
         self.attn = MultiHeadDotProductAttention(self.emb_dim, self.num_heads)
-        self.mlp_block = MlpBlock(self.emb_dim * self.mlp_ratio, self.emb_dim)
-
-    def forward(self, x, c):
-        # Calculate adaLn modulation parameters.
-        c = F.gelu(c, approximate=True)
-        c = self.fc1(c)
-        shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = paddle.split(
-            c, 6, axis=-1
+        self.mlp_block = MlpBlock(
+            self.emb_dim, self.emb_dim * self.mlp_ratio, self.emb_dim
         )
 
+    def forward(self, x, c):
+        # logger.debug(f"x.shape = {x.shape}, c.shape = {c.shape}")
+        # Calculate adaLn modulation parameters.
+        c = F.gelu(c, approximate=True)  # (B, emb_dim)
+        # logger.debug(f"c.shape = {c.shape}")
+        c = self.fc1(c)  # (B, 6* emb_dim)
+        # logger.debug(f"c.shape = {c.shape}")
+        shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = paddle.split(
+            c, 6, axis=-1
+        )  # (B, emb_dim)
+
         # Attention Residual.
-        x_norm = self.ln1(x)
-        x_modulated = modulate(x_norm, shift_msa, scale_msa)
-        attn_x = self.attn(x_modulated, x_modulated)
-        x = x + (gate_msa[:, None] * attn_x)
+        x_norm = self.ln1(x)  # [B, L, C]
+        # logger.debug(f"x_norm.shape = {x_norm.shape}")
+        x_modulated = modulate(x_norm, shift_msa, scale_msa)  # [B, L, C]
+        # logger.debug(f"x_modulated.shape = {x_modulated.shape}")
+        attn_x = self.attn(x_modulated, x_modulated)  # [B, L, C]
+        # logger.debug(f"attn_x.shape = {attn_x.shape}")
+        x = x + (gate_msa[:, None] * attn_x)  # [B, L, C]
+        # logger.debug(f"x.shape = {x.shape}")
 
         # MLP Residual.
-        x_norm2 = self.ln2(x)
-        x_modulated2 = modulate(x_norm2, shift_mlp, scale_mlp)
-        mlp_x = self.mlp_block(x_modulated2)
+        x_norm2 = self.ln2(x)  # [B, L, C]
+        # logger.debug(f"x_norm2.shape = {x_norm2.shape}")
+        x_modulated2 = modulate(x_norm2, shift_mlp, scale_mlp)  # [B, L, C]
+        # logger.debug(f"x_modulated2.shape = {x_modulated2.shape}")
+        mlp_x = self.mlp_block(x_modulated2)  # [B, L, C]
+        # logger.debug(f"mlp_x.shape = {mlp_x.shape}")
         x = x + (gate_mlp[:, None] * mlp_x)
+        # logger.debug(f"x.shape = {x.shape}")
         return x
 
 
@@ -492,17 +507,21 @@ class TimestepEmbedder(nn.Layer):
         emb_dim: int,
         frequency_embedding_size: int = 256,
     ):
+        super().__init__()
         self.emb_dim = emb_dim
         self.frequency_embedding_size = frequency_embedding_size
-        self.fc1 = nn.Linear(self.emb_dim, self.emb_dim)
+        self.fc1 = nn.Linear(self.frequency_embedding_size, self.emb_dim)
         initializer.normal_(self.fc1.weight)
         initializer.zeros_(self.fc1.weight)
+
         self.fc2 = nn.Linear(self.emb_dim, self.emb_dim)
         initializer.normal_(self.fc2.weight)
         initializer.zeros_(self.fc2.weight)
 
     def forward(self, t):
+        # logger.debug(f"t.shape: {t.shape}")
         x = self.timestep_embedding(t)
+        # logger.debug(f"x.shape: {x.shape}")
         x = self.fc1(x)
         x = F.silu(x)
         x = self.fc2(x)
@@ -523,59 +542,60 @@ class TimestepEmbedder(nn.Layer):
         dim = self.frequency_embedding_size
         half = dim // 2
         freqs = paddle.exp(
-            -paddle.log(max_period)
-            * paddle.arange(start=0, stop=half, dtype=paddle.float32)
+            -np.log(max_period)
+            * paddle.arange(start=0, end=half, dtype=paddle.float32)
             / half
-        )
-        args = t[:, None] * freqs[None]
+        )  # [half]
+        args = t[:, None] * freqs[None]  # [N, 1] * [1, half] => [N, half]
         embedding = paddle.concat([paddle.cos(args), paddle.sin(args)], axis=-1)
         return embedding
 
 
-class FinalLayer(nn.Layer):
-    """
-    The final layer of DiT.
-    """
+# class FinalLayer(nn.Layer):
+#     """
+#     The final layer of DiT.
+#     """
 
-    def __init__(
-        self,
-        out_dim: int,
-        emb_dim: int,
-    ):
-        self.out_dim = out_dim
-        self.emb_dim = emb_dim
-        self.fc1 = nn.Linear(
-            self.emb_dim,
-            2 * self.emb_dim,
-        )
-        initializer.zeros_(self.fc1.weight)
-        initializer.zeros_(self.fc1.bias)
-        self.ln1 = nn.LayerNorm(weight_attr=False, bias_attr=False)
+#     def __init__(
+#         self,
+#         out_dim: int,
+#         emb_dim: int,
+#     ):
+#         super().__init__()
+#         self.out_dim = out_dim
+#         self.emb_dim = emb_dim
+#         self.fc1 = nn.Linear(
+#             self.emb_dim,
+#             2 * self.emb_dim,
+#         )
+#         initializer.zeros_(self.fc1.weight)
+#         initializer.zeros_(self.fc1.bias)
+#         self.ln1 = nn.LayerNorm(self.emb_dim, weight_attr=False, bias_attr=False)
 
-        self.fc2 = nn.Linear(
-            self.emb_dim,
-            2 * self.emb_dim,
-        )
-        initializer.zeros_(self.fc1.weight)
-        initializer.zeros_(self.fc1.bias)
+#         self.fc2 = nn.Linear(
+#             self.emb_dim,
+#             2 * self.emb_dim,
+#         )
+#         initializer.zeros_(self.fc1.weight)
+#         initializer.zeros_(self.fc1.bias)
 
-    def forward(self, x, c):
-        c = F.gelu(c, approximate=True)
-        c = self.fc1(c)
-        shift, scale = paddle.split(c, 2, axis=-1)
-        x = modulate(self.ln1(x), shift, scale)
-        x = self.fc2(x)
-        return x
+#     def forward(self, x, c):
+#         c = F.gelu(c, approximate=True)
+#         c = self.fc1(c)
+#         shift, scale = paddle.split(c, 2, axis=-1)
+#         x = modulate(self.ln1(x), shift, scale)
+#         x = self.fc2(x)
+#         return x
 
 
-class DiT(nn.Layer):
+class DiT(base.Arch):
     """
     Diffusion model with a Transformer backbone.
     """
 
     def __init__(
         self,
-        model_name: Optional[str],
+        in_dim: int,
         emb_dim: int,
         depth: int,
         num_heads: int,
@@ -584,7 +604,8 @@ class DiT(nn.Layer):
         out_dim: int,
         with_condition: bool,
     ):
-        self.model_name = model_name
+        super().__init__()
+        self.in_dim = in_dim
         self.emb_dim = emb_dim
         self.depth = depth
         self.num_heads = num_heads
@@ -596,13 +617,11 @@ class DiT(nn.Layer):
             self.emb_dim,
             self.seq_len,
         )
-        self.pos_emb = self.create_parameter(
-            pos_emb.shape, default_initializer=nn.initializer.Assign(pos_emb)
-        )
+        self.register_buffer("pos_emb", pos_emb)
 
-        self.fc1 = nn.Linear(self.emb_dim, self.emb_dim)
+        self.fc1 = nn.Linear(self.in_dim, self.emb_dim)
         if with_condition:
-            self.fc2 = nn.Linear(self.emb_dim, self.emb_dim)
+            self.fc2 = nn.Linear(self.in_dim, self.emb_dim)
 
         self.timestep_embedder = TimestepEmbedder(self.emb_dim)
 
@@ -622,7 +641,14 @@ class DiT(nn.Layer):
     def forward(self, x, t, c=None):
         # (x = (B, L, C) image, t = (B,) timesteps, c = (B, L, C) conditioning
         # b, l, _ = x.shape
+        assert x.ndim == 3, x.shape
+        assert t.ndim == 1, t.shape
+        assert t.shape[0] == x.shape[0], f"t.shape: {t.shape}, x.shape: {x.shape}"
+        if c is not None:
+            assert c.ndim == 3, c.shape
+            assert c.shape == x.shape, f"c.shape: {c.shape}, x.shape: {x.shape}"
 
+        # logger.debug(f"x.shape: {x.shape}, {self.fc1.weight.shape}")
         x = self.fc1(x)
         x = x + self.pos_emb
 
@@ -632,6 +658,7 @@ class DiT(nn.Layer):
 
         t = self.timestep_embedder(t)  # (B, emb_dim)
 
+        # logger.debug(f"x.shape: {x.shape}, t.shape = {t.shape}")
         for i in range(self.depth):
             x = self.dit_blocks[i](x, t)
         # x = FinalLayer(self.out_dim, self.emb_dim)(x, t) # (B, num_patches, p*p*c)

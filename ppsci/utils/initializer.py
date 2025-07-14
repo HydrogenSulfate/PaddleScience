@@ -496,3 +496,29 @@ def glorot_normal_(tensor: paddle.Tensor) -> paddle.Tensor:
     trunc_normal_(tensor)
     tensor.set_value(tensor * stddev)
     return tensor
+
+
+def lecun_normal_(tensor: paddle.Tensor) -> paddle.Tensor:
+    """Modify tensor inplace using jax-style glorot_normal.
+
+    Args:
+        tensor (paddle.Tensor): Paddle Tensor/Parameter.
+
+    Returns:
+        paddle.Tensor: Initialized tensor.
+
+    Examples:
+        >>> import paddle
+        >>> import ppsci
+        >>> param = paddle.empty((128, 256), "float32")
+        >>> param = ppsci.utils.initializer.glorot_normal_(param)
+    """
+    assert (
+        tensor.ndim == 2
+    ), f"glorot_normal_ only support 2D tensor now, but got ndim={tensor.ndim}"
+    fin, _ = tensor.shape
+    var = 1.0 / fin
+    stddev = math.sqrt(var) / 0.87962566103423978
+    trunc_normal_(tensor)
+    tensor.set_value(tensor * stddev)
+    return tensor
