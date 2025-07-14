@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+NOTE: Code below is reproduced from https://github.com/sifanexisted/fundiff with paddle backend
+"""
 from __future__ import annotations
 
 from os import path as osp
@@ -162,7 +165,7 @@ def train_diffusion(cfg: DictConfig):
         def __init__(self, enc: Encoder, dec: Decoder, dit: DiT):
             super().__init__()
             self.enc = enc
-            self.dec = dec
+            self.dec = dec  # need to be wrapped for convenience when loading enc&dec&dit params togather in inference
             self.dit = dit
 
         def forward(self, batch: Dict[str, paddle.Tensor]):
@@ -303,22 +306,13 @@ def evaluate(cfg: DictConfig):
     decoder = Decoder(
         **cfg.FAE.decoder,
     )
-    fae = FAE(
-        cfg.FAE.input_keys,
-        cfg.FAE.output_keys,
-        encoder,
-        decoder,
-    )
     dit = DiT(**cfg.DIT)
-
-    save_load.load_pretrain(fae, "./fae_from_jax.pdparams")
-    save_load.load_pretrain(dit, "./dit_from_jax.pdparams")
 
     class ModelWrapper(paddle.nn.Layer):
         def __init__(self, enc: Encoder, dec: Decoder, dit: DiT):
             super().__init__()
             self.enc = enc
-            self.dec = dec
+            self.dec = dec  # need to be wrapper for save
             self.dit = dit
 
         def forward(self, batch: Dict[str, paddle.Tensor]):
@@ -354,12 +348,12 @@ def evaluate(cfg: DictConfig):
                     "v_t": v_t_pred,
                 }
 
-    # model = ModelWrapper(
-    #     encoder,
-    #     decoder,
-    #     dit,
-    # )
-    # save_load.load_pretrain(model, cfg.EVAL.pretrained_model_path)
+    model = ModelWrapper(
+        encoder,
+        decoder,
+        dit,
+    )
+    save_load.load_pretrain(model, cfg.EVAL.pretrained_model_path)
 
     # init evaluate data
     eval_dataset = ppsci.data.dataset.TMTDataset(

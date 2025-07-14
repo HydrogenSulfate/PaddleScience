@@ -466,6 +466,7 @@ class DiTBlock(nn.Layer):
         for layer in self.attn.sublayers():
             if isinstance(layer, nn.Linear):
                 initializer.xavier_uniform_(layer.weight)
+                # initializer.lecun_normal_(layer.weight)
                 initializer.zeros_(layer.bias)
 
         self.mlp_block = MlpBlock(

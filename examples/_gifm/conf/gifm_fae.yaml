@@ -30,7 +30,7 @@ seed: 42
 output_dir: ${hydra:run.dir}
 log_freq: 100
 
-DATA_PATH: "/gnodiff/fundiff/turbulence_mass_transfer/tmt.npy"
+DATA_PATH: /gnodiff/fundiff/turbulence_mass_transfer/tmt.npy
 num_train: 900
 
 # model settings

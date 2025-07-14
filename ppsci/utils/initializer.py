@@ -46,6 +46,8 @@ __all__ = [
     "kaiming_normal_",
     "linear_init_",
     "conv_init_",
+    "glorot_normal_",
+    "lecun_normal_",
 ]
 
 
@@ -499,7 +501,7 @@ def glorot_normal_(tensor: paddle.Tensor) -> paddle.Tensor:
 
 
 def lecun_normal_(tensor: paddle.Tensor) -> paddle.Tensor:
-    """Modify tensor inplace using jax-style glorot_normal.
+    """Modify tensor inplace using jax-style lecun_normal.
 
     Args:
         tensor (paddle.Tensor): Paddle Tensor/Parameter.
@@ -511,11 +513,11 @@ def lecun_normal_(tensor: paddle.Tensor) -> paddle.Tensor:
         >>> import paddle
         >>> import ppsci
         >>> param = paddle.empty((128, 256), "float32")
-        >>> param = ppsci.utils.initializer.glorot_normal_(param)
+        >>> param = ppsci.utils.initializer.lecun_normal_(param)
     """
     assert (
         tensor.ndim == 2
-    ), f"glorot_normal_ only support 2D tensor now, but got ndim={tensor.ndim}"
+    ), f"lecun_normal_ only support 2D tensor now, but got ndim={tensor.ndim}"
     fin, _ = tensor.shape
     var = 1.0 / fin
     stddev = math.sqrt(var) / 0.87962566103423978
