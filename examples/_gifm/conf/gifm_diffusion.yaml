@@ -113,7 +113,7 @@ EVAL:
 
 # inference settings
 INFER:
-  pretrained_model_path:
+  pretrained_model_path: null
   export_path: ./inference/gifm_fae
   pdmodel_path: ${INFER.export_path}.pdmodel
   pdiparams_path: ${INFER.export_path}.pdiparams

@@ -230,7 +230,6 @@ def train_diffusion(cfg: DictConfig):
             "shuffle": True,
         },
         "batch_size": cfg.TRAIN.batch_size,
-        "num_workers": 0,
     }
 
     sup_cst = ppsci.constraint.SupervisedConstraint(
@@ -315,39 +314,6 @@ def evaluate(cfg: DictConfig):
             self.dec = dec  # need to be wrapper for save
             self.dit = dit
 
-        def forward(self, batch: Dict[str, paddle.Tensor]):
-            u = batch["u"]
-            v = batch["v"]
-            z_u = self.enc(u)
-            z_v = self.enc(v)
-            z_c = paddle.concat([z_u, z_v], axis=-1)
-
-            if self.training:
-                p = batch["p"]
-                sdf = batch["sdf"]
-                z_p = self.enc(p)
-                z_sdf = self.enc(sdf)
-                z_1 = paddle.concat([z_p, z_sdf], axis=-1)
-                z_0 = paddle.randn(z_1.shape)  # (b, 200, 512) 初始分布，随机采样
-                t = paddle.uniform([z_1.shape[0], *[1 for _ in range(z_1.ndim - 1)]])
-                z_t = t * (z_1 - z_0)
-                v_t = z_1 - z_0
-            else:
-                t = batch["t"]
-                z_t = batch["z_t"]
-
-            # only training dit
-            v_t_pred = self.dit(z_t, t.flatten(), z_c)
-
-            if self.training:
-                return {
-                    "v_t_err": v_t - v_t_pred,
-                }
-            else:
-                return {
-                    "v_t": v_t_pred,
-                }
-
     model = ModelWrapper(
         encoder,
         decoder,
@@ -401,32 +367,19 @@ def evaluate(cfg: DictConfig):
             traj.append(z)
         return z, traj
 
-    iters = 0
-    for batch in tqdm(eval_loader):
-        iters = iters + 1
+    for iters, batch in tqdm(enumerate(eval_loader)):
         u: paddle.Tensor = batch[:, ::d, ::d, 0:1]
         v: paddle.Tensor = batch[:, ::d, ::d, 1:2]
         p: paddle.Tensor = batch[..., 2:3]
         sdf: paddle.Tensor = batch[..., 3:4]
 
-        logger.debug(f"u.shape = {u.shape}")
-        logger.debug(f"v.shape = {v.shape}")
-        logger.debug(f"p.shape = {p.shape}")
-        logger.debug(f"sdf.shape = {sdf.shape}")
-
         u = u + noise_level * paddle.randn(u.shape)
         v = v + noise_level * paddle.randn(v.shape)
 
         z_u = encoder(u)
-        logger.debug(f"z_u.shape = {z_u.shape}")
         z_v = encoder(v)
-        logger.debug(f"z_v.shape = {z_v.shape}")
-
-        # z_p = encoder(p)
-        # z_sdf = encoder(sdf)
 
         z_c = paddle.concat([z_u, z_v], axis=-1)  # (b, l, 2c)
-        logger.debug(f"z_c.shape = {z_c.shape}")
 
         z0 = paddle.randn(shape=z_c.shape)
         z1_new, _ = sample_ode(
@@ -435,15 +388,11 @@ def evaluate(cfg: DictConfig):
             num_steps=cfg.EVAL.num_steps,
             use_conditioning=cfg.EVAL.use_conditioning,
         )
-        logger.debug(f"z1_new.shape = {z1_new.shape}")
 
         c_dim = z_c.shape[-1]
         z_p_new = z1_new[..., : c_dim // 2]
         z_sdf_new = z1_new[..., c_dim // 2 :]
 
-        logger.debug(f"z_p_new.shape = {z_p_new.shape}")
-        logger.debug(f"z_sdf_new.shape = {z_sdf_new.shape}")
-        logger.debug(f"coords.shape = {coords.shape}")
         p_pred = decoder(z_p_new, coords)
         sdf_pred = decoder(z_sdf_new, coords)
 
@@ -459,118 +408,94 @@ def evaluate(cfg: DictConfig):
         p_true_list.append(p)
         sdf_true_list.append(sdf)
 
-        if iters == 4:
-            break
-
     # Concatenate all results
     u_input = paddle.concat(u_input_list, axis=0).squeeze()
-    # v_input = paddle.concat(v_input_list, axis=0).squeeze()
+    v_input = paddle.concat(v_input_list, axis=0).squeeze()
     p_pred = paddle.concat(p_pred_list, axis=0)
     sdf_pred = paddle.concat(sdf_pred_list, axis=0)
     p_true = paddle.concat(p_true_list, axis=0).squeeze()
     sdf_true = paddle.concat(sdf_true_list, axis=0).squeeze()
 
     def compute_error(pred, y):
-        return paddle.linalg.norm(pred.flatten() - y.flatten()) / paddle.linalg.norm(
-            y.flatten()
-        )
+        return paddle.linalg.norm(
+            pred.flatten(1) - y.flatten(1), axis=1, p="fro"
+        ) / paddle.linalg.norm(y.flatten(1), axis=1, p="fro")
 
+    # Compute errors
     error = compute_error(p_pred, p_true)
+    print(f"Mean relative p error: {paddle.mean(error).item():.4f}")
+    print(f"Max relative p error: {paddle.max(error).item():.4f}")
+    print(f"Min relative p error: {paddle.min(error).item():.4f}")
+    print(f"Std relative p error: {paddle.std(error, unbiased=True).item():.4f}")
 
-    print("Mean relative error:", paddle.mean(error))
-    print("Max relative error:", paddle.max(error))
-    print("Min relative error:", paddle.min(error))
-    print("Std relative error:", paddle.std(error))
+    error = compute_error(sdf_pred, sdf_true)
+    print(f"Mean relative sdf error: {paddle.mean(error).item():.4f}")
+    print(f"Max relative sdf error: {paddle.max(error).item():.4f}")
+    print(f"Min relative sdf error: {paddle.min(error).item():.4f}")
+    print(f"Std relative sdf error: {paddle.std(error, unbiased=True).item():.4f}")
 
-    # Visualization of some examples
-    k = 0
-    _ = plt.figure(figsize=(17, 4))
-    plt.subplot(1, 4, 1)
-    plt.title("Input")
-    plt.imshow(u_input[k, :, :].T, cmap="jet")
-    plt.colorbar()
+    for k in range(u_input.shape[0]):
+        if k >= 4:
+            break
 
-    plt.subplot(1, 4, 2)
-    plt.title("Reference")
-    plt.imshow(p_true[k, :, :].T, cmap="jet")
-    plt.colorbar()
+        # Visualization of some examples
+        _ = plt.figure(figsize=(17, 4))
+        plt.subplot(1, 4, 1)
+        plt.title("Input")
+        plt.imshow(u_input[k].T, cmap="jet")
+        plt.colorbar()
 
-    plt.subplot(1, 4, 3)
-    plt.title("Prediction")
-    plt.imshow(p_pred[k, :, :].T, cmap="jet")
-    plt.colorbar()
+        plt.subplot(1, 4, 2)
+        plt.title("Reference")
+        plt.imshow(p_true[k].T, cmap="jet")
+        plt.colorbar()
 
-    plt.subplot(1, 4, 4)
-    plt.title("Absolute Error")
-    plt.imshow(paddle.abs(p_pred[k, :, :].T - p_true[k, :, :].T), cmap="jet")
-    plt.colorbar()
+        plt.subplot(1, 4, 3)
+        plt.title("Prediction")
+        plt.imshow(p_pred[k].T, cmap="jet")
+        plt.colorbar()
 
-    plt.tight_layout()
-    plt.savefig(osp.join(cfg.output_dir, "Pressure predition of sample 1~4"))
-    plt.close()
+        plt.subplot(1, 4, 4)
+        plt.title("Absolute Error")
+        plt.imshow(paddle.abs(p_pred[k].T - p_true[k].T), cmap="jet")
+        plt.colorbar()
 
-    k = 0
-    _ = plt.figure(figsize=(17, 4))
-    plt.subplot(1, 4, 1)
-    plt.title("Input")
-    plt.imshow(u_input[k, :, :].T, cmap="jet")
-    plt.colorbar()
+        plt.tight_layout()
+        plt.savefig(osp.join(cfg.output_dir, f"Pressure_of_sample_{k}"))
+        plt.close()
 
-    plt.subplot(1, 4, 2)
-    plt.title("Reference")
-    plt.imshow(sdf_true[k, :, :].T, cmap="jet")
-    plt.colorbar()
+        _ = plt.figure(figsize=(17, 4))
+        plt.subplot(1, 4, 1)
+        plt.title("Input")
+        plt.imshow(u_input[k].T, cmap="jet")
+        plt.colorbar()
 
-    plt.subplot(1, 4, 3)
-    plt.title("Prediction")
-    plt.imshow(sdf_pred[k, :, :].T, cmap="jet")
-    plt.colorbar()
+        plt.subplot(1, 4, 2)
+        plt.title("Reference")
+        plt.imshow(sdf_true[k].T, cmap="jet")
+        plt.colorbar()
 
-    plt.subplot(1, 4, 4)
-    plt.title("Absolute Error")
-    plt.imshow(paddle.abs(sdf_pred[k, :, :].T - sdf_true[k, :, :].T), cmap="jet")
-    plt.colorbar()
+        plt.subplot(1, 4, 3)
+        plt.title("Prediction")
+        plt.imshow(sdf_pred[k].T, cmap="jet")
+        plt.colorbar()
 
-    plt.tight_layout()
-    plt.savefig(osp.join(cfg.output_dir, "SDF predition of sample 1~4"))
-    plt.close()
+        plt.subplot(1, 4, 4)
+        plt.title("Absolute Error")
+        plt.imshow(paddle.abs(sdf_pred[k].T - sdf_true[k].T), cmap="jet")
+        plt.colorbar()
 
-
-# def export(cfg: DictConfig):
-#     # set model
-#     model = ppsci.arch.PirateNet(**cfg.MODEL)
-
-#     # initialize solver
-#     solver = ppsci.solver.Solver(model, cfg=cfg)
-#     # export model
-#     from paddle.static import InputSpec
-
-#     input_spec = [
-#         {key: InputSpec([None, 1], "float32", name=key) for key in model.input_keys},
-#     ]
-#     solver.export(input_spec, cfg.INFER.export_path, with_onnx=False)
+        plt.tight_layout()
+        plt.savefig(osp.join(cfg.output_dir, f"SDF_of_sample_{k}"))
+        plt.close()
 
 
-# def inference(cfg: DictConfig):
-#     from deploy.python_infer import pinn_predictor
+def export(cfg: DictConfig):
+    raise NotImplementedError
 
-#     predictor = pinn_predictor.PINNPredictor(cfg)
-#     data = sio.loadmat(cfg.DATA_PATH)
-#     u_ref = data["usol"].astype(dtype)  # (nt, nx)
-#     t_star = data["t"].flatten().astype(dtype)  # [nt, ]
-#     x_star = data["x"].flatten().astype(dtype)  # [nx, ]
-#     tx_star = misc.cartesian_product(t_star, x_star).astype(dtype)
 
-#     input_dict = {"t": tx_star[:, 0:1], "x": tx_star[:, 1:2]}
-#     output_dict = predictor.predict(input_dict, cfg.INFER.batch_size)
-#     # mapping data to cfg.INFER.output_keys
-#     output_dict = {
-#         store_key: output_dict[infer_key]
-#         for store_key, infer_key in zip(cfg.MODEL.output_keys, output_dict.keys())
-#     }
-#     u_pred = output_dict["u"].reshape([len(t_star), len(x_star)])
-
-# plot(t_star, x_star, u_ref, u_pred, cfg.output_dir)
+def inference(cfg: DictConfig):
+    raise NotImplementedError
 
 
 @hydra.main(version_base=None, config_path="./conf", config_name="gifm_fae.yaml")
@@ -581,13 +506,15 @@ def main(cfg: DictConfig):
         elif cfg.stage == "dit":
             train_diffusion(cfg)
         else:
-            raise ValueError(f"cfg.stage should be 'fea', or 'dit, but got {cfg.stage}")
+            raise ValueError(
+                f"cfg.stage should be 'fea', or 'dit', but got {cfg.stage}"
+            )
     elif cfg.mode == "eval":
         evaluate(cfg)
-    # elif cfg.mode == "export":
-    #     export(cfg)
-    # elif cfg.mode == "infer":
-    #     inference(cfg)
+    elif cfg.mode == "export":
+        export(cfg)
+    elif cfg.mode == "infer":
+        inference(cfg)
     else:
         raise ValueError(
             f"cfg.mode should in ['train', 'eval', 'export', 'infer'], but got '{cfg.mode}'"
