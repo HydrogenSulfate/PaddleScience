@@ -35,11 +35,11 @@ num_train: 900
 
 # model settings
 FAE:
+  input_keys: [coords, x]
+  output_keys: [u]
   # x_dim: [2, 200, 100, 1]
   # c_dim: [2, 256, 512]
   # t_dim: [2]
-  input_keys: [coords, x]
-  output_keys: [u]
   encoder:
     in_dim: 1
     patch_size: [10, 5]

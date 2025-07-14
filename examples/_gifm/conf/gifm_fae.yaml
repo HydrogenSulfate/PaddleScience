@@ -34,7 +34,7 @@ DATA_PATH: "/gnodiff/fundiff/turbulence_mass_transfer/tmt.npy"
 num_train: 900
 
 # model settings
-MODEL:
+FAE:
   input_keys: [coords, x]
   output_keys: [u]
   # x_dim: [2, 200, 100, 1]

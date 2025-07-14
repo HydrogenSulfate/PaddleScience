@@ -39,15 +39,15 @@ dtype = paddle.get_default_dtype()
 def train_fae(cfg: DictConfig):
     # Initialize model
     encoder = Encoder(
-        **cfg.MODEL.encoder,
+        **cfg.FAE.encoder,
     )
     decoder = Decoder(
-        **cfg.MODEL.decoder,
+        **cfg.FAE.decoder,
     )
 
     fae = FAE(
-        cfg.MODEL.input_keys,
-        cfg.MODEL.output_keys,
+        cfg.FAE.input_keys,
+        cfg.FAE.output_keys,
         encoder,
         decoder,
     )
@@ -56,8 +56,8 @@ def train_fae(cfg: DictConfig):
     train_dataloader_cfg = {
         "dataset": {
             "name": "TMTDataset",
-            "input_keys": cfg.MODEL.input_keys,
-            "label_keys": cfg.MODEL.output_keys,
+            "input_keys": cfg.FAE.input_keys,
+            "label_keys": cfg.FAE.output_keys,
             "data_path": cfg.DATA_PATH,
             "num_train": cfg.num_train,
             "mode": "train",
@@ -147,6 +147,8 @@ def train_diffusion(cfg: DictConfig):
         encoder,
         decoder,
     )
+
+    # Load pretrained fae params and freeze fae
     save_load.load_pretrain(
         fae,
         cfg.FAE.pretrained_model_path,
@@ -164,7 +166,10 @@ def train_diffusion(cfg: DictConfig):
             self.dit = dit
 
         def forward(self, batch: Dict[str, paddle.Tensor]):
+            # define the forward pass for diffusion training process
+            # just ignore the non-training branch code
             with paddle.no_grad():
+                # data in batch have been downsampled already
                 u = batch["u"]
                 v = batch["v"]
                 z_u = self.enc(u)
@@ -181,7 +186,7 @@ def train_diffusion(cfg: DictConfig):
                     t = paddle.uniform(
                         [z_1.shape[0], *[1 for _ in range(z_1.ndim - 1)]]
                     )
-                    z_t = t * (z_1 - z_0)
+                    z_t = t * (z_1 - z_0) + z_0
                     v_t = z_1 - z_0
                 else:
                     t = batch["t"]
@@ -298,7 +303,16 @@ def evaluate(cfg: DictConfig):
     decoder = Decoder(
         **cfg.FAE.decoder,
     )
+    fae = FAE(
+        cfg.FAE.input_keys,
+        cfg.FAE.output_keys,
+        encoder,
+        decoder,
+    )
     dit = DiT(**cfg.DIT)
+
+    save_load.load_pretrain(fae, "./fae_from_jax.pdparams")
+    save_load.load_pretrain(dit, "./dit_from_jax.pdparams")
 
     class ModelWrapper(paddle.nn.Layer):
         def __init__(self, enc: Encoder, dec: Decoder, dit: DiT):
@@ -340,12 +354,12 @@ def evaluate(cfg: DictConfig):
                     "v_t": v_t_pred,
                 }
 
-    model = ModelWrapper(
-        encoder,
-        decoder,
-        dit,
-    )
-    save_load.load_pretrain(model, cfg.EVAL.pretrained_model_path)
+    # model = ModelWrapper(
+    #     encoder,
+    #     decoder,
+    #     dit,
+    # )
+    # save_load.load_pretrain(model, cfg.EVAL.pretrained_model_path)
 
     # init evaluate data
     eval_dataset = ppsci.data.dataset.TMTDataset(
@@ -364,8 +378,8 @@ def evaluate(cfg: DictConfig):
     x_coords, y_coords = np.meshgrid(x_coords, y_coords, indexing="ij")
     coords = np.hstack([x_coords.reshape(-1, 1), y_coords.reshape(-1, 1)])[None, ...]
 
-    noise_level = 1.0
-    d = 2
+    noise_level = 0.0
+    d = 1
     u_input_list = []
     v_input_list = []
     p_pred_list = []
