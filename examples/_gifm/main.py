@@ -24,6 +24,7 @@ import hydra
 import matplotlib.pyplot as plt
 import numpy as np
 import paddle
+from matplotlib import gridspec
 from model import FAE
 from model import Decoder
 from model import DiT
@@ -185,7 +186,7 @@ def train_diffusion(cfg: DictConfig):
                     z_p = self.enc(p)
                     z_sdf = self.enc(sdf)
                     z_1 = paddle.concat([z_p, z_sdf], axis=-1)
-                    z_0 = paddle.randn(z_1.shape)  # (b, 200, 512) 初始分布，随机采样
+                    z_0 = paddle.randn(z_1.shape)  # (b, 200, 512)
                     t = paddle.uniform(
                         [z_1.shape[0], *[1 for _ in range(z_1.ndim - 1)]]
                     )
@@ -333,10 +334,12 @@ def evaluate(cfg: DictConfig):
     eval_loader = paddle.io.DataLoader(eval_dataset, batch_size=cfg.EVAL.batch_size)
 
     h, w = 200, 100
-    x_coords = np.linspace(0, 1, h)
-    y_coords = np.linspace(0, 1, w)
+    x_coords = np.linspace(0, 1, h, dtype=dtype)
+    y_coords = np.linspace(0, 1, w, dtype=dtype)
     x_coords, y_coords = np.meshgrid(x_coords, y_coords, indexing="ij")
-    coords = np.hstack([x_coords.reshape(-1, 1), y_coords.reshape(-1, 1)])[None, ...]
+    coords = np.hstack([x_coords.reshape(-1, 1), y_coords.reshape(-1, 1)], dtype=dtype)[
+        None, ...
+    ]
 
     noise_level = 0.0
     d = 1
@@ -423,70 +426,72 @@ def evaluate(cfg: DictConfig):
 
     # Compute errors
     error = compute_error(p_pred, p_true)
-    print(f"Mean relative p error: {paddle.mean(error).item():.4f}")
-    print(f"Max relative p error: {paddle.max(error).item():.4f}")
-    print(f"Min relative p error: {paddle.min(error).item():.4f}")
-    print(f"Std relative p error: {paddle.std(error, unbiased=True).item():.4f}")
+    logger.info(f"Mean relative p error: {paddle.mean(error).item():.4f}")
+    logger.info(f"Max relative p error: {paddle.max(error).item():.4f}")
+    logger.info(f"Min relative p error: {paddle.min(error).item():.4f}")
+    logger.info(f"Std relative p error: {paddle.std(error, unbiased=True).item():.4f}")
 
     error = compute_error(sdf_pred, sdf_true)
-    print(f"Mean relative sdf error: {paddle.mean(error).item():.4f}")
-    print(f"Max relative sdf error: {paddle.max(error).item():.4f}")
-    print(f"Min relative sdf error: {paddle.min(error).item():.4f}")
-    print(f"Std relative sdf error: {paddle.std(error, unbiased=True).item():.4f}")
+    logger.info(f"Mean relative sdf error: {paddle.mean(error).item():.4f}")
+    logger.info(f"Max relative sdf error: {paddle.max(error).item():.4f}")
+    logger.info(f"Min relative sdf error: {paddle.min(error).item():.4f}")
+    logger.info(
+        f"Std relative sdf error: {paddle.std(error, unbiased=True).item():.4f}"
+    )
 
     for k in range(u_input.shape[0]):
         if k >= 4:
             break
 
-        # Visualization of some examples
-        _ = plt.figure(figsize=(17, 4))
-        plt.subplot(1, 4, 1)
-        plt.title("Input")
-        plt.imshow(u_input[k].T, cmap="jet")
-        plt.colorbar()
+        fig = plt.figure(figsize=(20, 5))
+        gs = gridspec.GridSpec(
+            2, 5, width_ratios=[0.8, 1, 1, 1, 0.05], wspace=0.3, hspace=0.3
+        )
 
-        plt.subplot(1, 4, 2)
-        plt.title("Reference")
-        plt.imshow(p_true[k].T, cmap="jet")
-        plt.colorbar()
+        ax_input_u = fig.add_subplot(gs[0, 0])
+        ax_input_u.set_title("Input U")
+        im = ax_input_u.imshow(u_input[k].T, cmap="jet")
+        plt.colorbar(im, ax=ax_input_u)
 
-        plt.subplot(1, 4, 3)
-        plt.title("Prediction")
-        plt.imshow(p_pred[k].T, cmap="jet")
-        plt.colorbar()
+        ax_input_v = fig.add_subplot(gs[1, 0])
+        ax_input_v.set_title("Input V")
+        im = ax_input_v.imshow(v_input[k].T, cmap="jet")
+        plt.colorbar(im, ax=ax_input_v)
 
-        plt.subplot(1, 4, 4)
-        plt.title("Absolute Error")
-        plt.imshow(paddle.abs(p_pred[k].T - p_true[k].T), cmap="jet")
-        plt.colorbar()
+        # Reference / Prediction / Error of P
+        ax_ref = fig.add_subplot(gs[0, 1])
+        ax_ref.set_title("Reference P")
+        im = ax_ref.imshow(p_true[k].T, cmap="jet")
+        plt.colorbar(im, ax=ax_ref)
+
+        ax_pred = fig.add_subplot(gs[0, 2])
+        ax_pred.set_title("Prediction P")
+        im = ax_pred.imshow(p_pred[k].T, cmap="jet")
+        plt.colorbar(im, ax=ax_pred)
+
+        ax_err = fig.add_subplot(gs[0, 3])
+        ax_err.set_title("Absolute Error P")
+        im = ax_err.imshow(paddle.abs(p_pred[k].T - p_true[k].T), cmap="jet")
+        plt.colorbar(im, ax=ax_err)
+
+        # Reference / Prediction / Error of SDF
+        ax_ref2 = fig.add_subplot(gs[1, 1])
+        ax_ref2.set_title("Reference SDF")
+        im = ax_ref2.imshow(sdf_true[k].T, cmap="jet")
+        plt.colorbar(im, ax=ax_ref2)
+
+        ax_pred2 = fig.add_subplot(gs[1, 2])
+        ax_pred2.set_title("Prediction SDF")
+        im = ax_pred2.imshow(sdf_pred[k].T, cmap="jet")
+        plt.colorbar(im, ax=ax_pred2)
+
+        ax_err2 = fig.add_subplot(gs[1, 3])
+        ax_err2.set_title("Absolute Error SDF")
+        im = ax_err2.imshow(paddle.abs(sdf_pred[k].T - sdf_true[k].T), cmap="jet")
+        plt.colorbar(im, ax=ax_err2)
 
         plt.tight_layout()
-        plt.savefig(osp.join(cfg.output_dir, f"Pressure_of_sample_{k}"))
-        plt.close()
-
-        _ = plt.figure(figsize=(17, 4))
-        plt.subplot(1, 4, 1)
-        plt.title("Input")
-        plt.imshow(u_input[k].T, cmap="jet")
-        plt.colorbar()
-
-        plt.subplot(1, 4, 2)
-        plt.title("Reference")
-        plt.imshow(sdf_true[k].T, cmap="jet")
-        plt.colorbar()
-
-        plt.subplot(1, 4, 3)
-        plt.title("Prediction")
-        plt.imshow(sdf_pred[k].T, cmap="jet")
-        plt.colorbar()
-
-        plt.subplot(1, 4, 4)
-        plt.title("Absolute Error")
-        plt.imshow(paddle.abs(sdf_pred[k].T - sdf_true[k].T), cmap="jet")
-        plt.colorbar()
-
-        plt.tight_layout()
-        plt.savefig(osp.join(cfg.output_dir, f"SDF_of_sample_{k}"))
+        plt.savefig(osp.join(cfg.output_dir, f"result_of_sample_{k}.png"), dpi=300)
         plt.close()
 
 
