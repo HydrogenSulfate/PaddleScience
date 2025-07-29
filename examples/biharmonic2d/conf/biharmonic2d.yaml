@@ -56,8 +56,8 @@ TRAIN:
       tolerance_grad: 1.0e-8
       tolerance_change: 0
   batch_size:
-    bc: 125
-    interior: 8000
+    bc: 500
+    interior: 32000
   weight:
     bc: 100
     interior: 1

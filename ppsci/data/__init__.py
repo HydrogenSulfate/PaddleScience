@@ -71,22 +71,24 @@ def build_dataloader(_dataset, cfg):
 
         if batch_sampler_cls == "BatchSampler":
             if world_size > 1:
-                batch_sampler_cls = "DistributedBatchSampler"
-                logger.warning(
-                    f"Automatically use 'DistributedBatchSampler' instead of "
-                    f"'BatchSampler' when world_size({world_size}) > 1."
-                )
+                pass
+                # batch_sampler_cls = "DistributedBatchSampler"
+                # logger.warning(
+                #     f"Automatically use 'DistributedBatchSampler' instead of "
+                #     f"'BatchSampler' when world_size({world_size}) > 1."
+                # )
 
         sampler_cfg["batch_size"] = cfg["batch_size"]
         batch_sampler = getattr(io, batch_sampler_cls)(_dataset, **sampler_cfg)
     else:
         batch_sampler_cls = "BatchSampler"
         if world_size > 1:
-            batch_sampler_cls = "DistributedBatchSampler"
-            logger.warning(
-                f"Automatically use 'DistributedBatchSampler' instead of "
-                f"'BatchSampler' when world_size({world_size}) > 1."
-            )
+            pass
+            # batch_sampler_cls = "DistributedBatchSampler"
+            # logger.warning(
+            #     f"Automatically use 'DistributedBatchSampler' instead of "
+            #     f"'BatchSampler' when world_size({world_size}) > 1."
+            # )
         batch_sampler = getattr(io, batch_sampler_cls)(
             _dataset,
             batch_size=cfg["batch_size"],
@@ -149,10 +151,7 @@ def build_dataloader(_dataset, cfg):
             worker_init_fn=init_fn,
         )
     else:
-        if (
-            cfg.get("auto_collation", not getattr(_dataset, "batch_index", False))
-            is False
-        ):
+        if False:
             if "transforms" in cfg["dataset"] and "auto_collation" not in cfg:
                 logger.warning(
                     "'transforms' and batch indexing(auto_collation=False) are both "
@@ -195,6 +194,9 @@ def build_dataloader(_dataset, cfg):
             # 'IndexError: pop from empty list ...' will be raised in certain cases
             # persistent_workers=cfg.get("num_workers", _DEFAULT_NUM_WORKERS) > 0,
         )
+        if world_size > 1:
+            mesh = dist.ProcessMesh(list(range(world_size)), dim_names=["dp"])
+            dataloader_ = dist.shard_dataloader(dataloader_, mesh, shard_dims="dp")
 
     if len(dataloader_) == 0:
         raise ValueError(

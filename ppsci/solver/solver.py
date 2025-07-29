@@ -304,15 +304,15 @@ class Solver:
         self.rank = dist.get_rank()
         self.world_size = dist.get_world_size()
         # initialize distributed environment
-        if self.world_size > 1:
-            # TODO(sensen): Support different kind of DistributedStrategy
-            fleet.init(is_collective=True)
-            logger.warning(
-                f"Detected 'world_size'({self.world_size}) > 1, it is recommended to "
-                "scale up the learning rate and reduce the 'epochs' or "
-                "'iters_per_epoch' according to the 'world_size' both linearly if you "
-                "are training model."
-            )
+        # if self.world_size > 1:
+        #     # TODO(sensen): Support different kind of DistributedStrategy
+        #     fleet.init(is_collective=True)
+        #     logger.warning(
+        #         f"Detected 'world_size'({self.world_size}) > 1, it is recommended to "
+        #         "scale up the learning rate and reduce the 'epochs' or "
+        #         "'iters_per_epoch' according to the 'world_size' both linearly if you "
+        #         "are training model."
+        #     )
 
         # set moving average model(optional)
         self.ema_model = None
@@ -391,31 +391,31 @@ class Solver:
             self.train_epoch_func = ppsci.solver.train.train_epoch_func
 
         # wrap model and optimizer to parallel object
-        if self.world_size > 1:
-            if isinstance(self.model, paddle.DataParallel):
-                raise ValueError(
-                    "Given model is already wrapped by paddle.DataParallel."
-                    "Please do not wrap your model with DataParallel "
-                    "before 'Solver.__init__' and keep it's type as 'nn.Layer'."
-                )
+        # if self.world_size > 1:
+        #     if isinstance(self.model, paddle.DataParallel):
+        #         raise ValueError(
+        #             "Given model is already wrapped by paddle.DataParallel."
+        #             "Please do not wrap your model with DataParallel "
+        #             "before 'Solver.__init__' and keep it's type as 'nn.Layer'."
+        #         )
 
-            def dist_wrapper(model: nn.Layer) -> paddle.DataParallel:
-                dist_model = fleet.distributed_model(model)
-                if hasattr(model, "input_keys"):
-                    dist_model.input_keys = dist_model._layers.input_keys
-                if hasattr(model, "output_keys"):
-                    dist_model.output_keys = dist_model._layers.output_keys
-                return dist_model
+        #     def dist_wrapper(model: nn.Layer) -> paddle.DataParallel:
+        #         dist_model = fleet.distributed_model(model)
+        #         if hasattr(model, "input_keys"):
+        #             dist_model.input_keys = dist_model._layers.input_keys
+        #         if hasattr(model, "output_keys"):
+        #             dist_model.output_keys = dist_model._layers.output_keys
+        #         return dist_model
 
-            if isinstance(self.model, ppsci.arch.ModelList):
-                for i in range(len(self.model.model_list)):
-                    # NOTE: Convert each model in model_list to DataParallel
-                    self.model.model_list[i] = dist_wrapper(self.model.model_list[i])
-            else:
-                self.model = dist_wrapper(self.model)
+        #     if isinstance(self.model, ppsci.arch.ModelList):
+        #         for i in range(len(self.model.model_list)):
+        #             # NOTE: Convert each model in model_list to DataParallel
+        #             self.model.model_list[i] = dist_wrapper(self.model.model_list[i])
+        #     else:
+        #         self.model = dist_wrapper(self.model)
 
-            if self.optimizer is not None:
-                self.optimizer = fleet.distributed_optimizer(self.optimizer)
+        #     if self.optimizer is not None:
+        #         self.optimizer = fleet.distributed_optimizer(self.optimizer)
 
         # set VisualDL tool
         self.vdl_writer = None
@@ -820,9 +820,7 @@ class Solver:
         )
 
         pred_dict = misc.Prettydefaultdict(list)
-        with self.no_grad_context_manager(no_grad), self.no_sync_context_manager(
-            self.world_size > 1, self.model
-        ):
+        with self.no_grad_context_manager(no_grad):
             for batch_id in range(local_batch_num):
                 # prepare local batch input
                 if batch_size is not None:
