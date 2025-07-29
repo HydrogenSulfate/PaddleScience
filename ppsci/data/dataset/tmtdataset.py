@@ -22,11 +22,11 @@ import paddle
 from einops import rearrange
 
 
-def shuffle_along_axis(a, axis):
+def _shuffle_along_axis(a: np.ndarray, axis: int) -> np.ndarray:
     """Shuffle numpy array along the specified axis."""
-    a = np.swapaxes(a, axis, 0)  # 把要 shuffle 的 axis 移到前面
-    np.random.shuffle(a)  # 沿第0维打乱
-    a = np.swapaxes(a, 0, axis)  # 再换回来
+    a = np.swapaxes(a, axis, 0)
+    np.random.shuffle(a)
+    a = np.swapaxes(a, 0, axis)
     return a
 
 
@@ -82,13 +82,13 @@ class TMTDataset(paddle.io.Dataset):
         outputs = np.stack([u, v, p, sdf], axis=-1)  # (b, h, w, c)
 
         # Shuffle dataset
-        outputs = shuffle_along_axis(outputs, axis=0)
+        outputs = _shuffle_along_axis(outputs, axis=0)
         outputs = np.array(outputs, dtype=np.float32)
 
         train_outputs = outputs[: self.num_train]  # [n_train, h, w, 4]
         test_outputs = outputs[self.num_train :]  # [n_test, h, w, 4]
 
-        # Normalize the data 对数据进行z-score标准化
+        # Normalize the data by z-score
         mean = train_outputs.mean(axis=(0, 1, 2))  # [4]
         std = train_outputs.std(axis=(0, 1, 2))  # [4]
 
@@ -105,7 +105,9 @@ class TMTDataset(paddle.io.Dataset):
 
 
 class BatchParser:
-    def __init__(self, num_queries, h, w, solution):
+    def __init__(self, input_keys, output_keys, num_queries, h, w, solution):
+        self.input_keys = input_keys
+        self.output_keys = output_keys
         self.num_query_points = num_queries
         self.solution = solution
 
@@ -145,32 +147,28 @@ class BatchParser:
         # batch_outputs: [b4, num_query_points, 1]
         return (
             {
-                "coords": paddle.to_tensor(batch_coords),
-                "x": batch_inputs,
-                "u": batch_outputs,
+                self.input_keys[0]: paddle.to_tensor(batch_coords),
+                self.input_keys[1]: batch_inputs,
             },
             {
-                "u": batch_outputs,
+                self.output_keys[0]: batch_outputs,
             },
             None,
         )
 
-    def random_downsample(self, batch: paddle.Tensor, downsample: int = 1):
-        u, v, p, sdf = batch.split(4, axis=-1)  # [b, h, w, 1]
-
+    def random_downsample(
+        self, batch: paddle.Tensor, downsample: int = 1
+    ) -> paddle.Tensor:
         # Downsample the inputs
         if len(self.solution) == 1:
             sol = self.solution[0]
         else:
             sol = np.random.choice(self.solution)
 
-            # batch_inputs = batch_inputs[:, ::sol, ::sol]  # [b4, h', w', 1]
-
         if sol != 1:
-            u = u[:, ::downsample, ::downsample]
-            v = v[:, ::downsample, ::downsample]
-            sdf = sdf[:, ::downsample, ::downsample]
-            p = p[:, ::downsample, ::downsample]
+            batch = batch[:, ::downsample, ::downsample]  # [b, h/r, w/r, 4]
+
+        u, v, p, sdf = batch.split(4, axis=-1)  # [b, h/r, w/r, 1]
 
         return (
             {
@@ -184,11 +182,3 @@ class BatchParser:
             },
             None,
         )
-
-    def query_all(self, batch):
-        batch_inputs = batch
-
-        batch_outputs = rearrange(batch, "b h w c -> b (h w) c")
-        batch_coords = self.coords
-
-        return batch_coords, batch_inputs, batch_outputs

@@ -503,6 +503,9 @@ def glorot_normal_(tensor: paddle.Tensor) -> paddle.Tensor:
 def lecun_normal_(tensor: paddle.Tensor) -> paddle.Tensor:
     """Modify tensor inplace using jax-style lecun_normal.
 
+    References:
+        https://github.com/jax-ml/jax/blob/main/jax/_src/nn/initializers.py#L480-L513
+
     Args:
         tensor (paddle.Tensor): Paddle Tensor/Parameter.
 
