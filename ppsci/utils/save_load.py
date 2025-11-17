@@ -173,9 +173,13 @@ def load_checkpoint(
         scaler_dict = paddle.load(f"{path}.pdscaler")
 
     if equation is not None:
+        equation_dict = None
         if not osp.exists(f"{path}.pdeqn"):
-            logger.warning(f"{path}.pdeqn not found.")
-            equation_dict = None
+            num_learnable_params = sum(
+                [len(eq.learnable_parameters) for eq in equation.values()]
+            )
+            if num_learnable_params > 0:
+                logger.warning(f"{path}.pdeqn not found.")
         else:
             equation_dict = paddle.load(f"{path}.pdeqn")
 

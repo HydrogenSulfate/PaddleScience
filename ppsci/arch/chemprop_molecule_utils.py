@@ -65,9 +65,7 @@ def make_mol(s: str, keep_h: bool, add_h: bool):
 
 
 class Featurization_parameters:
-    """
-    A class holding molecule featurization parameters as attributes.
-    """
+    """A class holding molecule featurization parameters as attributes."""
 
     def __init__(self) -> None:
         self.MAX_ATOMIC_NUM = 100
@@ -995,14 +993,13 @@ def initialize_weights(model: paddle.nn.Layer) -> None:
 
 
 class NoamLR(paddle.optimizer.lr.LRScheduler):
-    """
-    Noam learning rate scheduler with piecewise linear increase and exponential decay.
+    """Noam learning rate scheduler with piecewise linear increase and exponential decay.
 
     The learning rate increases linearly from init_lr to max_lr over the course of
-    the first warmup_steps (where :code:`warmup_steps = warmup_epochs * steps_per_epoch`).
-    Then the learning rate decreases exponentially from :code:`max_lr` to :code:`final_lr` over the
-    course of the remaining :code:`total_steps - warmup_steps` (where :code:`total_steps =
-    total_epochs * steps_per_epoch`). This is roughly based on the learning rate
+    the first warmup_steps (where warmup_steps = warmup_epochs * steps_per_epoch).
+    Then the learning rate decreases exponentially from max_lr to final_lr over the
+    course of the remaining total_steps - warmup_steps (where total_steps =
+    total_epochs * steps_per_epoch). This is roughly based on the learning rate
     schedule from `Attention is All You Need <https://arxiv.org/abs/1706.03762>`_, section 5.3.
     """
 
@@ -1215,11 +1212,13 @@ try:
 
     @register_features_generator("rdkit_2d")
     def rdkit_2d_features_generator(mol: Molecule) -> np.ndarray:
-        """
-        Generates RDKit 2D features for a molecule.
+        """Generates RDKit 2D features for a molecule.
 
-        :param mol: A molecule (i.e., either a SMILES or an RDKit molecule).
-        :return: A 1D numpy array containing the RDKit 2D features.
+        Args:
+            mol: A molecule (i.e., either a SMILES or an RDKit molecule).
+
+        Returns:
+            A 1D numpy array containing the RDKit 2D features.
         """
         smiles = Chem.MolToSmiles(mol, isomericSmiles=True) if type(mol) != str else mol
         generator = rdDescriptors.RDKit2D()
@@ -1228,11 +1227,13 @@ try:
 
     @register_features_generator("rdkit_2d_normalized")
     def rdkit_2d_normalized_features_generator(mol: Molecule) -> np.ndarray:
-        """
-        Generates RDKit 2D normalized features for a molecule.
+        """Generates RDKit 2D normalized features for a molecule.
 
-        :param mol: A molecule (i.e., either a SMILES or an RDKit molecule).
-        :return: A 1D numpy array containing the RDKit 2D normalized features.
+        Args:
+            mol: A molecule (i.e., either a SMILES or an RDKit molecule).
+
+        Returns:
+            A 1D numpy array containing the RDKit 2D normalized features.
         """
         smiles = Chem.MolToSmiles(mol, isomericSmiles=True) if type(mol) != str else mol
         generator = rdNormalizedDescriptors.RDKit2DNormalized()

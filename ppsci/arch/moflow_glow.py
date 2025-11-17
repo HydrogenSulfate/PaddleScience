@@ -345,15 +345,16 @@ class BlockOnGraph(nn.Layer):
         mask_row_stride=1,
         affine=True,
     ):
-        """
+        """Initialize BlockOnGraph.
 
-        :param n_node:
-        :param in_dim:
-        :param hidden_dim:
-        :param n_flow:
-        :param mask_row_size: number of rows to be masked for update
-        :param mask_row_stride: number of steps between two masks' firs row
-        :param affine:
+        Args:
+            n_node: Number of nodes in the graph.
+            in_dim: Input dimension.
+            hidden_dim_dict: Dictionary containing hidden dimensions for GNN and linear layers.
+            n_flow: Number of flow layers.
+            mask_row_size: Number of rows to be masked for update.
+            mask_row_stride: Number of steps between two masks' first row.
+            affine: Whether to use affine transformation.
         """
         super(BlockOnGraph, self).__init__()
         assert 0 < mask_row_size < n_node
