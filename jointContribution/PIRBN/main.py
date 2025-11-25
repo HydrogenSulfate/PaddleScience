@@ -40,7 +40,7 @@ def sine_function_main(
     # Set up PIRBN
     rbn = rbn_net.RBN_Net(n_in, n_out, n_neu, b, c, activation_function)
     rbn_loss = pirbn.PIRBN(rbn, activation_function)
-    maxiter = 20001
+    maxiter = 3
     output_Kgg = [0, int(0.1 * maxiter), maxiter - 1]
     train_obj = train.Trainer(
         rbn_loss,

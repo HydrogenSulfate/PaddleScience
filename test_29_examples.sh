@@ -1,7 +1,10 @@
+set -ex
 # prepare environment
+export PYTHONPATH=`pwd`
 python -m pip install --upgrade pip
 python -m pip install uv
 export MAX_ITERS=3
+unset https_proxy http_proxy
 
 # zh/examples/allen_cahn.md
 # pushd examples/allen_cahn/
@@ -10,11 +13,14 @@ export MAX_ITERS=3
 
 # zh/examples/deephpms.md
 pushd examples/deephpms/
+wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/DeepHPMs/burgers_sine.mat -P ./datasets/
 python burgers.py DATASET_PATH=./datasets/burgers_sine.mat DATASET_PATH_SOL=./datasets/burgers_sine.mat 2>&1 | tee deephpms.log
 popd
 
 # zh/examples/deeponet.md
 pushd examples/operator_learning/
+wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/DeepONet/antiderivative_unaligned_train.npz
+wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/DeepONet/antiderivative_unaligned_test.npz
 python deeponet.py 2>&1 | tee operator_learnin.log
 popd
 
@@ -30,6 +36,8 @@ popd
 
 # zh/examples/lorenz.md
 pushd examples/lorenz/
+wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/lorenz_training_rk.hdf5 -P ./datasets/
+wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/lorenz_valid_rk.hdf5 -P ./datasets/
 python train_enn.py 2>&1 | tee lorenz.log
 python train_transformer.py
 popd

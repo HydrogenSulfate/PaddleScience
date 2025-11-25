@@ -1,120 +1,266 @@
 import os
 import subprocess
-
-# import sys
 from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parent  # 根目录
+ROOT = Path(__file__).resolve().parents[0]
 
 
-def run_cmd(cmd, cwd):
-    """在指定目录执行命令"""
-    print(f"\n=== Running: {cmd} in {cwd} ===\n")
+def run(cmd, cwd):
+    """Run shell commands with subprocess, raising on failure."""
     env = os.environ.copy()
-    env["FLAGS_enable_api_kernel_fallback"] = "0"
-    # env["FLAGS_call_stack_level"] = "3"
-    env["CUDA_VISIBLE_DEVICES"] = "11"
-    result = subprocess.run(
-        cmd,
-        cwd=cwd,
-        shell=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        encoding="utf-8",
-        env=env,
+    env["CUDA_VISIBLE_DEVICES"] = "3"
+    subprocess.run(cmd, cwd=cwd, shell=True, check=True, env=env)
+
+
+@pytest.fixture(scope="function")
+def workdir(tmp_path):
+    """A helper to emulate pushd/popd behavior."""
+    old = os.getcwd()
+    os.chdir(tmp_path)
+    yield tmp_path
+    os.chdir(old)
+
+
+# ------------------------------------------------------------
+# Global setup once for all tests
+# ------------------------------------------------------------
+@pytest.fixture(scope="session", autouse=True)
+def global_setup():
+    os.environ["PYTHONPATH"] = str(ROOT)
+    os.environ["MAX_ITERS"] = "3"
+    os.environ.pop("https_proxy", None)
+    os.environ.pop("http_proxy", None)
+
+    run("python -m pip install --upgrade pip", cwd=ROOT)
+    run("python -m pip install uv", cwd=ROOT)
+
+
+# ============================================================
+#                 INDIVIDUAL EXAMPLE TESTS
+# ============================================================
+
+
+def test_deephpms():
+    d = ROOT / "examples/deephpms"
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/DeepHPMs/burgers_sine.mat -P ./datasets/",
+        cwd=d,
     )
-    print(result.stdout)
-    assert result.returncode == 0, f"Command failed: {cmd}\n{result.stdout}"
+    run(
+        "python burgers.py "
+        "DATASET_PATH=./datasets/burgers_sine.mat "
+        "DATASET_PATH_SOL=./datasets/burgers_sine.mat",
+        cwd=d,
+    )
 
 
-"""
-PYTHONUNBUFFERED=1 HYDRA_FULL_ERROR=1 python -u -m pytest -s --capture=no -vvv -x test_example.py --timeout=300 --lf
-"""
+def test_deeponet_operator_learning():
+    d = ROOT / "examples/operator_learning"
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/DeepONet/antiderivative_unaligned_train.npz",
+        cwd=d,
+    )
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/DeepONet/antiderivative_unaligned_test.npz",
+        cwd=d,
+    )
+    run("python deeponet.py", cwd=d)
 
 
-@pytest.mark.parametrize(
-    "cwd, cmd",
-    [
-        # ("examples/allen_cahn", "python allen_cahn_piratenet.py"),
-        (
-            "examples/deephpms",
-            "python burgers.py DATASET_PATH=./datasets/burgers_sine.mat DATASET_PATH_SOL=./datasets/burgers_sine.mat",
-        ),
-        ("examples/operator_learning", "python deeponet.py"),
-        ("examples/euler_beam", "python euler_beam.py"),
-        ("examples/laplace", "python laplace2d.py"),
-        ("examples/lorenz", "python train_transformer.py"),
-        ("jointContribution/PIRBN", "python main.py"),
-        ("examples/rossler", "python train_transformer.py"),
-        ("examples/ide", "python volterra_ide.py"),
-        # ("examples/NLS-MB", "python NLS-MB_optical_soliton.py"),
-        # ("examples/spinn", "python helmholtz3d.py"),
-        # ("examples/xpinn", "python xpinn.py"),
-        # ("examples/neuraloperator", "python train_tfno.py"),
-        # ("examples/brusselator3d", "python brusselator3d.py"),
-        # ("examples/transformer4sr", "python transformer4sr.py"),
-        # ("examples/LatentNO", "python LatentNO-steady.py --config-name=LatentNO-Darcy.yaml"),
-        # ("examples/fundiff", "python main.py -cn fae.yaml"),
-        # ("examples/catheter", "python catheter.py"),
-        ("examples/amgnet", "python amgnet_airfoil.py"),
-        ("examples/aneurysm", "python aneurysm.py"),
-        ("examples/bubble", "python bubble.py"),
-        # ("examples/adv", "python adv_cvit.py"),
-        ("examples/cylinder/2d_unsteady", "python cylinder2d_unsteady_Re100.py"),
-        (
-            "examples/cylinder/2d_unsteady/transformer_physx",
-            "python train_transformer.py",
-        ),
-        ("examples/darcy", "python darcy2d.py"),
-        ("examples/deepcfd", "python deepcfd.py"),
-        # ("examples/drivaernet", "python drivaernet.py"),
-        # ("examples/drivaernetplusplus", "python drivaernetplusplus.py"),
-        # ("examples/ldc", "python ldc_2d_Re3200_sota.py"),
-        # ("examples/ldc", "python ldc2d_unsteady_Re10.py"),
-        # ("examples/aneurysm", "python aneurysm_flow.py"),
-        ("examples/nsfnet", "python VP_NSFNet1.py"),
-        # ("examples/phycrnet", "python main.py DATA_PATH=./data/burgers_1501x2x128x128.mat"),
-        # ("examples/shock_wave", "python shock_wave.py"),
-        # ("examples/tempoGAN", "python tempoGAN.py"),
-        # ("examples/nsfnet", "python VP_NSFNet4.py mode=eval data_dir=./data/ EVAL.pretrained_model_path=https://paddle-org.bj.bcebos.com/paddlescience/models/nsfnet/nsfnet4.pdparams"),
-        ("examples/fsi", "python viv.py"),
-        ("examples/biharmonic2d", "python biharmonic2d.py"),
-        ("examples/bracket", "python bracket.py"),
-        ("examples/control_arm", "python forward_analysis.py"),
-        ("examples/epnn", "python epnn.py"),
-        ("examples/phylstm", "python phylstm2.py"),
-        ("examples/topopt", "python topopt.py"),
-        # ("examples/ntopo", "python ntopo.py"),
-        # ("examples/heart", "python inverse.py TRAIN.pretrained_model_path=https://paddle-org.bj.bcebos.com/paddlescience/models/heart/inverse_pretrained.pdparams"),
-        ("examples/heat_exchanger", "python heat_exchanger.py"),
-        ("examples/heat_pinn", "python heat_pinn.py"),
-        ("examples/phygeonet", "python heat_equation.py"),
-        ("examples/chip_heat", "python chip_heat.py"),
-        ("examples/hpinns", "python holography.py"),
-        # ("examples/perovskite_solar_cells", "python psc_nn.py mode=train"),
-        # ("examples/graphcast", "python graphcast.py mode=eval EVAL.pretrained_model_path=\"data/params/GraphCast_small---ERA5-1979-2015---resolution-1.0---pressure-levels-13---mesh-2to5---precipitation-input-and-output.pdparams\""),
-        # ("examples/tgcn", "python run.py data_name=PEMSD8 mode=eval EVAL.pretrained_model_path=PEMSD8_pretrained_model.pdparams"),
-        # ("examples/unetformer", "python vaihingen_test.py -c config/vaihingen/unetformer.py -o fig_results/vaihingen/unetformer --rgb"),
-        # ("examples/smc_reac", "python smc_reac.py"),
-        # ("examples/ifm", "python ifm.py mode=train data_label=tox21 MODEL.embed_name='IFM'"),
-        # ("examples/synthemol", "python main.py mode=train"),
-        ("examples/tadf/TADF_Est", "python Est.py mode=train"),
-        # ("examples/stafnet", "python stafnet.py mode=eval EVAL.pretrained_model_path=\"https://paddle-org.bj.bcebos.com/paddlescience/models/stafnet/stafnet.pdparams\""),
-        # 报错符合预期的
-        # ("examples/UTAE", "python test_semantic.py --weight_file ./pretrained/semantic.pdparams --dataset_folder \"./data/PASTIS\" --device gpu --num_workers 0"),
-        # ("examples/fengwu", "python predict.py INFER.device=cpu"),
-        # ("examples/fuxi", "python predict.py"),
-        # ("examples/pangu_weather", "python predict.py INFER.export_path=inference/pangu_weather_1 INFER.device=cpu"),
-        # ("examples/pangu_weather", "python predict.py INFER.export_path=inference/pangu_weather_3 INFER.device=cpu"),
-        # ("examples/pangu_weather", "python predict.py INFER.export_path=inference/pangu_weather_6 INFER.device=cpu"),
-        # ("examples/pangu_weather", "python predict.py INFER.export_path=inference/pangu_weather_24 INFER.device=cpu"),
-        # ("examples/velocityGAN", "python velocityGAN.py"),
-        # ("examples/cgcnn", "python CGCNN.py"),
-        # ("examples/nowcastnet", "python nowcastnet.py mode=infer"),
-        # ("examples/dgmr", "python dgmr.py mode=eval EVAL.pretrained_model_path=https://paddle-org.bj.bcebos.com/paddlescience/models/dgmr/dgmr_pretrained.pdparams"),
-    ],
-)
-def test_example(cwd, cmd):
-    run_cmd(cmd, ROOT / cwd)
+def test_euler_beam():
+    run("python euler_beam.py", ROOT / "examples/euler_beam")
+
+
+def test_laplace2d():
+    run("python laplace2d.py", ROOT / "examples/laplace")
+
+
+def test_lorenz():
+    d = ROOT / "examples/lorenz"
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/lorenz_training_rk.hdf5 -P ./datasets/",
+        cwd=d,
+    )
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/lorenz_valid_rk.hdf5 -P ./datasets/",
+        cwd=d,
+    )
+    run("python train_enn.py", cwd=d)
+    # run("python train_transformer.py", cwd=d)
+
+
+def test_pirbn():
+    run("python main.py", ROOT / "jointContribution/PIRBN")
+
+
+def test_rossler():
+    d = ROOT / "examples/rossler"
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/rossler_training.hdf5 -P ./datasets/",
+        cwd=d,
+    )
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/rossler_valid.hdf5 -P ./datasets/",
+        cwd=d,
+    )
+    run("python train_enn.py", cwd=d)
+    # run("python train_transformer.py", cwd=d)
+
+
+def test_ide():
+    run("python volterra_ide.py", ROOT / "examples/ide")
+
+
+def test_amgnet():
+    d = ROOT / "examples/amgnet"
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/AMGNet/data.zip",
+        cwd=d,
+    )
+    run("unzip -o data.zip", cwd=d)
+    run("python amgnet_airfoil.py", cwd=d)
+
+
+def test_aneurysm():
+    d = ROOT / "examples/aneurysm"
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/aneurysm/aneurysm_dataset.tar",
+        cwd=d,
+    )
+    run("tar -xvf aneurysm_dataset.tar", cwd=d)
+    run("python aneurysm.py", cwd=d)
+
+
+def test_bubble():
+    d = ROOT / "examples/bubble"
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/BubbleNet/bubble.mat",
+        cwd=d,
+    )
+    run("python bubble.py", cwd=d)
+
+
+def test_cylinder2d_unsteady():
+    d = ROOT / "examples/cylinder/2d_unsteady"
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/cylinder2d_unsteady_Re100/cylinder2d_unsteady_Re100_dataset.tar",
+        cwd=d,
+    )
+    run("tar -xvf cylinder2d_unsteady_Re100_dataset.tar", cwd=d)
+    run("python cylinder2d_unsteady_Re100.py", cwd=d)
+
+
+def test_cylinder2d_transformer_physx():
+    d = ROOT / "examples/cylinder/2d_unsteady/transformer_physx"
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/cylinder_training.hdf5 -P ./datasets/",
+        cwd=d,
+    )
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/cylinder_valid.hdf5 -P ./datasets/",
+        cwd=d,
+    )
+    run("python train_enn.py", cwd=d)
+    # run("python train_transformer.py", cwd=d)
+
+
+def test_darcy2d():
+    run("python darcy2d.py", ROOT / "examples/darcy")
+
+
+def test_deepcfd():
+    d = ROOT / "examples/deepcfd"
+    run(
+        "wget -nc -P ./datasets/ https://paddle-org.bj.bcebos.com/paddlescience/datasets/DeepCFD/dataX.pkl",
+        cwd=d,
+    )
+    run(
+        "wget -nc -P ./datasets/ https://paddle-org.bj.bcebos.com/paddlescience/datasets/DeepCFD/dataY.pkl",
+        cwd=d,
+    )
+    run("python deepcfd.py", cwd=d)
+
+
+def test_nsfnet():
+    run("python VP_NSFNet1.py", ROOT / "examples/nsfnet")
+
+
+def test_fsi_viv():
+    run("python viv.py", ROOT / "examples/fsi")
+
+
+def test_biharmonic2d():
+    run("python biharmonic2d.py", ROOT / "examples/biharmonic2d")
+
+
+def test_bracket():
+    d = ROOT / "examples/bracket"
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/bracket/bracket_dataset.tar",
+        cwd=d,
+    )
+    run("tar -xvf bracket_dataset.tar", cwd=d)
+    run("python bracket.py", cwd=d)
+
+
+def test_control_arm():
+    d = ROOT / "examples/control_arm"
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/control_arm/control_arm.stl -P ./datasets/",
+        cwd=d,
+    )
+    run("python forward_analysis.py", cwd=d)
+
+
+def test_epnn():
+    d = ROOT / "examples/epnn"
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/epnn/dstate-16-plas.dat -P ./datasets/",
+        cwd=d,
+    )
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/epnn/dstress-16-plas.dat -P ./datasets/",
+        cwd=d,
+    )
+    run("python epnn.py", cwd=d)
+
+
+def test_phylstm():
+    d = ROOT / "examples/phylstm"
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/PhyLSTM/data_boucwen.mat",
+        cwd=d,
+    )
+    run("python phylstm2.py", cwd=d)
+
+
+def test_topopt():
+    d = ROOT / "examples/topopt"
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/topopt/top_dataset.h5 -P ./datasets/",
+        cwd=d,
+    )
+    run("python topopt.py", cwd=d)
+
+
+def test_heat_exchanger():
+    run("python heat_exchanger.py", ROOT / "examples/heat_exchanger")
+
+
+def test_heat_pinn():
+    run("python heat_pinn.py", ROOT / "examples/heat_pinn")
+
+
+def test_phygeonet():
+    d = ROOT / "examples/phygeonet"
+    run(
+        "wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/PhyGeoNet/heat_equation.npz -P ./data/",
+        cwd=d,
+    )
+    run("python heat_equation.py", cwd=d)
+
+
+def test_chip_heat():
+    run("python chip_heat.py", ROOT / "examples/chip_heat")

@@ -215,9 +215,10 @@ def train_epoch_func(solver: "solver.Solver", epoch_id: int, log_freq: int):
                 sys.exit(0)
 
         solver._invoke_callbacks_on_iter_end()
-        if solver.global_step >= os.environ.get("MAX_ITERS", 1000000000):
+        MAX_ITERS = int(os.environ.get("MAX_ITERS", 1000000000))
+        if solver.global_step >= MAX_ITERS:
             misc.logger.info(
-                f"Exit as global_step({solver.global_step}) >= MAX_ITERS({os.environ.get('MAX_ITERS', 3)})"
+                f"Exit as global_step({solver.global_step}) >= MAX_ITERS({MAX_ITERS})"
             )
             sys.exit(0)
 
@@ -328,8 +329,9 @@ def train_LBFGS_epoch_func(solver: "solver.Solver", epoch_id: int, log_freq: int
 
         batch_tic = time.perf_counter()
         solver._invoke_callbacks_on_iter_end()
-        if solver.global_step >= os.environ.get("MAX_ITERS", 1000000000):
+        MAX_ITERS = int(os.environ.get("MAX_ITERS", 1000000000))
+        if solver.global_step >= MAX_ITERS:
             misc.logger.info(
-                f"Exit as global_step({solver.global_step}) >= MAX_ITERS({os.environ.get('MAX_ITERS', 3)})"
+                f"Exit as global_step({solver.global_step}) >= MAX_ITERS({MAX_ITERS})"
             )
             sys.exit(0)
