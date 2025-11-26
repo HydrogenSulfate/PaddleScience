@@ -12,159 +12,159 @@ unset https_proxy http_proxy
 # popd
 
 # zh/examples/deephpms.md
-pushd examples/deephpms/
-wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/DeepHPMs/burgers_sine.mat -P ./datasets/
-python burgers.py DATASET_PATH=./datasets/burgers_sine.mat DATASET_PATH_SOL=./datasets/burgers_sine.mat 2>&1 | tee deephpms.log
-popd
-
-# zh/examples/deeponet.md
-pushd examples/operator_learning/
-wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/DeepONet/antiderivative_unaligned_train.npz
-wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/DeepONet/antiderivative_unaligned_test.npz
-python deeponet.py 2>&1 | tee operator_learnin.log
-popd
-
-# zh/examples/euler_beam.md
-pushd examples/euler_beam/
-python euler_beam.py 2>&1 | tee euler_beam.log
-popd
-
-# zh/examples/laplace2d.md
-pushd examples/laplace/
-python laplace2d.py 2>&1 | tee laplace.log
-popd
-
-# zh/examples/lorenz.md
-pushd examples/lorenz/
-wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/lorenz_training_rk.hdf5 -P ./datasets/
-wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/lorenz_valid_rk.hdf5 -P ./datasets/
-python train_enn.py 2>&1 | tee lorenz.log
-python train_transformer.py
-popd
-
-# zh/examples/pirbn.md
-pushd jointContribution/PIRBN
-python main.py 2>&1 | tee PIRBN.log
-popd
-
-# zh/examples/rossler.md
-pushd examples/rossler/
-wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/rossler_training.hdf5 -P ./datasets/ 2>&1 | tee rossler.log
-wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/rossler_valid.hdf5 -P ./datasets/
-python train_enn.py
-python train_transformer.py
-popd
-
-# zh/examples/volterra_ide.md
-pushd examples/ide/
-python volterra_ide.py 2>&1 | tee ide.log
-popd
-
-# zh/examples/nlsmb.md
-# pushd examples/NLS-MB/
-# python NLS-MB_optical_rogue_wave.py 2>&1 | tee MB.log
-# python NLS-MB_optical_soliton.py
+# pushd examples/deephpms/
+# wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/DeepHPMs/burgers_sine.mat -P ./datasets/
+# python burgers.py DATASET_PATH=./datasets/burgers_sine.mat DATASET_PATH_SOL=./datasets/burgers_sine.mat 2>&1 | tee deephpms.log
 # popd
 
-# zh/examples/spinn.md
-# pushd examples/spinn/
-# python helmholtz3d.py 2>&1 | tee spinn.log
+# # zh/examples/deeponet.md
+# pushd examples/operator_learning/
+# wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/DeepONet/antiderivative_unaligned_train.npz
+# wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/DeepONet/antiderivative_unaligned_test.npz
+# python deeponet.py 2>&1 | tee operator_learnin.log
 # popd
 
-# zh/examples/xpinns.md
-# pushd examples/xpinn/
-# wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/XPINN/XPINN_2D_PoissonEqn.mat -P ./data/ 2>&1 | tee xpinn.log
-# python xpinn.py
+# # zh/examples/euler_beam.md
+# pushd examples/euler_beam/
+# python euler_beam.py 2>&1 | tee euler_beam.log
 # popd
 
-# zh/examples/neuraloperator.md
-# pushd examples/neuraloperator/
-# wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/neuraloperator/darcy_flow/darcy_train_16.npy -P ./datasets/darcyflow/
-# wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/neuraloperator/darcy_flow/darcy_test_32.npy -P ./datasets/darcyflow/
-# wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/neuraloperator/darcy_flow/darcy_test_16.npy -P ./datasets/darcyflow/
-# python train_tfno.py 2>&1 | tee neuraloperator.log
-# python train_uno.py
+# # zh/examples/laplace2d.md
+# pushd examples/laplace/
+# python laplace2d.py 2>&1 | tee laplace.log
 # popd
 
-# zh/examples/brusselator3d.md
-# pushd examples/brusselator3d/
-# python brusselator3d.py 2>&1 | tee brusselator3d.log
+# # zh/examples/lorenz.md
+# pushd examples/lorenz/
+# wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/lorenz_training_rk.hdf5 -P ./datasets/
+# wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/lorenz_valid_rk.hdf5 -P ./datasets/
+# python train_enn.py 2>&1 | tee lorenz.log
+# # python train_transformer.py
 # popd
 
-# zh/examples/transformer4sr.md
-# pushd examples/transformer4sr/
-# pip install zss
-# tar -xzvf data_generated.tar.gz
-# python transformer4sr.py 2>&1 | tee transformer4s.log
+# # zh/examples/pirbn.md
+# pushd jointContribution/PIRBN
+# python main.py 2>&1 | tee PIRBN.log
 # popd
 
-# zh/examples/latent_no.md
-# pushd examples/LatentNO/
-# python LatentNO-steady.py --config-name=LatentNO-Darcy.yaml 2>&1 | tee LatentNO.log
+# # zh/examples/rossler.md
+# pushd examples/rossler/
+# wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/rossler_training.hdf5 -P ./datasets/ 2>&1 | tee rossler.log
+# wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/rossler_valid.hdf5 -P ./datasets/
+# python train_enn.py
+# # python train_transformer.py
 # popd
 
-# zh/examples/fundiff.md
-# pushd examples/fundiff/
-# python main.py -cn fae.yaml 2>&1 | tee fundiff.log
+# # zh/examples/volterra_ide.md
+# pushd examples/ide/
+# python volterra_ide.py 2>&1 | tee ide.log
 # popd
 
-# zh/examples/catheter.md
-# pushd examples/catheter/
-# wget -nc https://dataset.bj.bcebos.com/PaddleScience/2024%20AI-aided%20geometric%20design%20of%20anti-infection%20catheters/data.zip
+# # zh/examples/nlsmb.md
+# # pushd examples/NLS-MB/
+# # python NLS-MB_optical_rogue_wave.py 2>&1 | tee MB.log
+# # python NLS-MB_optical_soliton.py
+# # popd
+
+# # zh/examples/spinn.md
+# # pushd examples/spinn/
+# # python helmholtz3d.py 2>&1 | tee spinn.log
+# # popd
+
+# # zh/examples/xpinns.md
+# # pushd examples/xpinn/
+# # wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/XPINN/XPINN_2D_PoissonEqn.mat -P ./data/ 2>&1 | tee xpinn.log
+# # python xpinn.py
+# # popd
+
+# # zh/examples/neuraloperator.md
+# # pushd examples/neuraloperator/
+# # wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/neuraloperator/darcy_flow/darcy_train_16.npy -P ./datasets/darcyflow/
+# # wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/neuraloperator/darcy_flow/darcy_test_32.npy -P ./datasets/darcyflow/
+# # wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/neuraloperator/darcy_flow/darcy_test_16.npy -P ./datasets/darcyflow/
+# # python train_tfno.py 2>&1 | tee neuraloperator.log
+# # python train_uno.py
+# # popd
+
+# # zh/examples/brusselator3d.md
+# # pushd examples/brusselator3d/
+# # python brusselator3d.py 2>&1 | tee brusselator3d.log
+# # popd
+
+# # zh/examples/transformer4sr.md
+# # pushd examples/transformer4sr/
+# # pip install zss
+# # tar -xzvf data_generated.tar.gz
+# # python transformer4sr.py 2>&1 | tee transformer4s.log
+# # popd
+
+# # zh/examples/latent_no.md
+# # pushd examples/LatentNO/
+# # python LatentNO-steady.py --config-name=LatentNO-Darcy.yaml 2>&1 | tee LatentNO.log
+# # popd
+
+# # zh/examples/fundiff.md
+# # pushd examples/fundiff/
+# # python main.py -cn fae.yaml 2>&1 | tee fundiff.log
+# # popd
+
+# # zh/examples/catheter.md
+# # pushd examples/catheter/
+# # wget -nc https://dataset.bj.bcebos.com/PaddleScience/2024%20AI-aided%20geometric%20design%20of%20anti-infection%20catheters/data.zip
+# # unzip data.zip
+# # python catheter.py 2>&1 | tee catheter.log
+# # popd
+
+# # zh/examples/amgnet.md
+# pushd examples/amgnet/
+# wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/AMGNet/data.zip
 # unzip data.zip
-# python catheter.py 2>&1 | tee catheter.log
+# python amgnet_airfoil.py 2>&1 | tee amgnet.log
 # popd
 
-# zh/examples/amgnet.md
-pushd examples/amgnet/
-wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/AMGNet/data.zip
-unzip data.zip
-python amgnet_airfoil.py 2>&1 | tee amgnet.log
-popd
-
-# zh/examples/aneurysm.md
-pushd examples/aneurysm/
-wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/aneurysm/aneurysm_dataset.tar
-tar -xvf aneurysm_dataset.tar
-python aneurysm.py 2>&1 | tee aneurysm.log
-popd
-
-# zh/examples/bubble.md
-pushd examples/bubble/
-wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/BubbleNet/bubble.mat
-python bubble.py 2>&1 | tee bubble.log
-popd
-
-# zh/examples/cfdgcn.md
-# pushd examples/allen_cahn/
-# python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log
+# # zh/examples/aneurysm.md
+# pushd examples/aneurysm/
+# wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/aneurysm/aneurysm_dataset.tar
+# tar -xvf aneurysm_dataset.tar
+# python aneurysm.py 2>&1 | tee aneurysm.log
 # popd
 
-# zh/examples/adv_cvit.md
-# pushd examples/adv/
-# wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/Cvit_adv/adv_a0.npy -P ./data
-# wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/Cvit_adv/adv_aT.npy -P ./data
-# python adv_cvit.py 2>&1 | tee adv.log
+# # zh/examples/bubble.md
+# pushd examples/bubble/
+# wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/BubbleNet/bubble.mat
+# python bubble.py 2>&1 | tee bubble.log
 # popd
 
-# zh/examples/ns_cvit.md
-# pushd examples/allen_cahn/
-# python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log
-# popd
+# # zh/examples/cfdgcn.md
+# # pushd examples/allen_cahn/
+# # python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log
+# # popd
 
-# zh/examples/cylinder2d_unsteady.md
-pushd examples/cylinder/2d_unsteady/
-wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/cylinder2d_unsteady_Re100/cylinder2d_unsteady_Re100_dataset.tar
-tar -xvf cylinder2d_unsteady_Re100_dataset.tar
-python cylinder2d_unsteady_Re100.py 2>&1 | tee 2d_unsteady.log
-popd
+# # zh/examples/adv_cvit.md
+# # pushd examples/adv/
+# # wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/Cvit_adv/adv_a0.npy -P ./data
+# # wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/Cvit_adv/adv_aT.npy -P ./data
+# # python adv_cvit.py 2>&1 | tee adv.log
+# # popd
+
+# # zh/examples/ns_cvit.md
+# # pushd examples/allen_cahn/
+# # python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log
+# # popd
+
+# # zh/examples/cylinder2d_unsteady.md
+# pushd examples/cylinder/2d_unsteady/
+# wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/cylinder2d_unsteady_Re100/cylinder2d_unsteady_Re100_dataset.tar
+# tar -xvf cylinder2d_unsteady_Re100_dataset.tar
+# python cylinder2d_unsteady_Re100.py 2>&1 | tee 2d_unsteady.log
+# popd
 
 # zh/examples/cylinder2d_unsteady_transformer_physx.md
 pushd examples/cylinder/2d_unsteady/transformer_physx
 wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/cylinder_training.hdf5 -P ./datasets/
 wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/cylinder_valid.hdf5 -P ./datasets/
 python train_enn.py 2>&1 | tee transformer_phys.log
-python train_transformer.py
+# python train_transformer.py
 popd
 
 # zh/examples/darcy2d.md
@@ -223,15 +223,15 @@ popd
 # popd
 
 # zh/examples/nsfnet.md
-pushd examples/nsfnet/
-python VP_NSFNet1.py 2>&1 | tee nsfnet.log
-popd
+# pushd examples/nsfnet/
+# python VP_NSFNet1.py 2>&1 | tee nsfnet.log
+# popd
 
 # zh/examples/phycrnet.md
 # pushd examples/phycrnet/
 # wget -nc https://paddle-org.bj.bcebos.com/paddlescience/datasets/PhyCRNet/burgers_1501x2x128x128.mat -P ./data/
 # python main.py DATA_PATH=./data/burgers_1501x2x128x128.mat 2>&1 | tee phycrnet.log
-popd
+# popd
 
 # zh/examples/shock_wave.md
 # pushd examples/shock_wave/
