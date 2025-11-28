@@ -1215,11 +1215,13 @@ try:
 
     @register_features_generator("rdkit_2d")
     def rdkit_2d_features_generator(mol: Molecule) -> np.ndarray:
-        """
-        Generates RDKit 2D features for a molecule.
+        """Generates RDKit 2D features for a molecule.
 
-        :param mol: A molecule (i.e., either a SMILES or an RDKit molecule).
-        :return: A 1D numpy array containing the RDKit 2D features.
+        Args:
+            mol: A molecule (i.e., either a SMILES or an RDKit molecule).
+
+        Returns:
+            A 1D numpy array containing the RDKit 2D features.
         """
         smiles = Chem.MolToSmiles(mol, isomericSmiles=True) if type(mol) != str else mol
         generator = rdDescriptors.RDKit2D()
@@ -1228,11 +1230,13 @@ try:
 
     @register_features_generator("rdkit_2d_normalized")
     def rdkit_2d_normalized_features_generator(mol: Molecule) -> np.ndarray:
-        """
-        Generates RDKit 2D normalized features for a molecule.
+        """Generates RDKit 2D normalized features for a molecule.
 
-        :param mol: A molecule (i.e., either a SMILES or an RDKit molecule).
-        :return: A 1D numpy array containing the RDKit 2D normalized features.
+        Args:
+            mol: A molecule (i.e., either a SMILES or an RDKit molecule).
+
+        Returns:
+            A 1D numpy array containing the RDKit 2D normalized features.
         """
         smiles = Chem.MolToSmiles(mol, isomericSmiles=True) if type(mol) != str else mol
         generator = rdNormalizedDescriptors.RDKit2DNormalized()
@@ -1488,7 +1492,7 @@ class CommonArgs(Tap):
     @property
     def cuda(self) -> bool:
         """Whether to use CUDA (i.e., GPUs) or not."""
-        return not self.no_cuda and paddle.device.cuda.device_count() >= 1
+        return not self.no_cuda and paddle.device.device_count() >= 1
 
     @cuda.setter
     def cuda(self, cuda: bool) -> None:
@@ -1534,9 +1538,7 @@ class CommonArgs(Tap):
         self._bond_features_size = bond_features_size
 
     def configure(self) -> None:
-        self.add_argument(
-            "--gpu", choices=list(range(paddle.device.cuda.device_count()))
-        )
+        self.add_argument("--gpu", choices=list(range(paddle.device.device_count())))
         self.add_argument(
             "--features_generator", choices=get_available_features_generators()
         )

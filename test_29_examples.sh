@@ -1,11 +1,16 @@
 set -ex
+export LD_PRELOAD=/usr/local/corex-4.3.8/lib64/libcuda.so.1
+export PADDLE_XCCL_BACKEND=iluvatar_gpu
+# export PYTHONPATH=$PYTHONPATH:/usr/local/corex-4.3.8/lib64/python3/dist-packages
 # prepare environment
-export PYTHONPATH=`pwd`
-python -m pip install --upgrade pip
-python -m pip install uv
+which python
+export PYTHONPATH=`pwd`:$PYTHONPATH
+# python -m pip install --upgrade pip
+# python -m pip install uv
 export MAX_ITERS=3
 unset https_proxy http_proxy
 export HYDRA_FULL_ERROR=1
+export CUDA_VISIBLE_DEVICES=1
 
 # zh/examples/allen_cahn.md
 # pushd examples/allen_cahn/
