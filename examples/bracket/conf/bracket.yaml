@@ -75,7 +75,7 @@ MODEL:
 # training settings
 TRAIN:
   epochs: 2000
-  iters_per_epoch: 1000
+  iters_per_epoch: 50
   save_freq: 20
   eval_during_train: true
   eval_freq: 20

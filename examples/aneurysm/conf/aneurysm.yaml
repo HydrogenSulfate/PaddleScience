@@ -63,7 +63,7 @@ MODEL:
 # training settings
 TRAIN:
   epochs: 1500
-  iters_per_epoch: 1000
+  iters_per_epoch: 50
   iters_integral:
     igc_outlet: 100
     igc_integral: 100
