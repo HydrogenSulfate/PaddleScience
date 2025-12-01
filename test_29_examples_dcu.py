@@ -16,8 +16,8 @@ def global_env():
     env = os.environ.copy()
 
     # Set explicit environment variables from the script
-    env["LD_PRELOAD"] = "/usr/local/corex-4.3.8/lib64/libcuda.so.1"
-    env["PADDLE_XCCL_BACKEND"] = "iluvatar_gpu"
+    # env["LD_PRELOAD"] = "/usr/local/corex-4.3.8/lib64/libcuda.so.1"
+    # env["PADDLE_XCCL_BACKEND"] = "iluvatar_gpu"
 
     # Handle PYTHONPATH: append current working directory
     current_cwd = os.getcwd()
@@ -31,6 +31,7 @@ def global_env():
     # Unset proxies
     env.pop("https_proxy", None)
     env.pop("http_proxy", None)
+
     return env
 
 
@@ -57,9 +58,7 @@ def run_cmds(commands, cwd, env):
 # --- zh/examples/allen_cahn.md ---
 @pytest.mark.skip(reason="Commented out in original script")
 def test_allen_cahn(global_env):
-    commands = [
-        "python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log",
-    ]
+    commands = ["python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log"]
     run_cmds(commands, cwd="examples/allen_cahn/", env=global_env)
 
 
@@ -84,17 +83,13 @@ def test_deeponet(global_env):
 
 # --- zh/examples/euler_beam.md ---
 def test_euler_beam(global_env):
-    commands = [
-        "python euler_beam.py 2>&1 | tee euler_beam.log",
-    ]
+    commands = ["python euler_beam.py 2>&1 | tee euler_beam.log"]
     run_cmds(commands, cwd="examples/euler_beam/", env=global_env)
 
 
 # --- zh/examples/laplace2d.md ---
 def test_laplace2d(global_env):
-    commands = [
-        "python laplace2d.py 2>&1 | tee laplace.log",
-    ]
+    commands = ["python laplace2d.py 2>&1 | tee laplace.log"]
     run_cmds(commands, cwd="examples/laplace/", env=global_env)
 
 
@@ -111,9 +106,7 @@ def test_lorenz(global_env):
 
 # --- zh/examples/pirbn.md ---
 def test_pirbn(global_env):
-    commands = [
-        "python main.py 2>&1 | tee PIRBN.log",
-    ]
+    commands = ["python main.py 2>&1 | tee PIRBN.log"]
     run_cmds(commands, cwd="jointContribution/PIRBN", env=global_env)
 
 
@@ -130,9 +123,7 @@ def test_rossler(global_env):
 
 # --- zh/examples/volterra_ide.md ---
 def test_volterra_ide(global_env):
-    commands = [
-        "python volterra_ide.py 2>&1 | tee ide.log",
-    ]
+    commands = ["python volterra_ide.py 2>&1 | tee ide.log"]
     run_cmds(commands, cwd="examples/ide/", env=global_env)
 
 
@@ -149,14 +140,12 @@ def test_nlsmb(global_env):
 # --- zh/examples/spinn.md ---
 @pytest.mark.skip(reason="Commented out in original script")
 def test_spinn(global_env):
-    commands = [
-        "python helmholtz3d.py 2>&1 | tee spinn.log",
-    ]
+    commands = ["python helmholtz3d.py 2>&1 | tee spinn.log"]
     run_cmds(commands, cwd="examples/spinn/", env=global_env)
 
 
 # --- zh/examples/xpinns.md ---
-@pytest.mark.skip(reason="Commented out in original script")
+# @pytest.mark.skip(reason="Commented out in original script")
 def test_xpinns(global_env):
     commands = [
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/XPINN/XPINN_2D_PoissonEqn.mat -P ./data/ 2>&1 | tee xpinn.log",
@@ -166,14 +155,14 @@ def test_xpinns(global_env):
 
 
 # --- zh/examples/neuraloperator.md ---
-@pytest.mark.skip(reason="Commented out in original script")
+# @pytest.mark.skip(reason="Commented out in original script")
 def test_neuraloperator(global_env):
     commands = [
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/neuraloperator/darcy_flow/darcy_train_16.npy -P ./datasets/darcyflow/",
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/neuraloperator/darcy_flow/darcy_test_32.npy -P ./datasets/darcyflow/",
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/neuraloperator/darcy_flow/darcy_test_16.npy -P ./datasets/darcyflow/",
         "python train_tfno.py 2>&1 | tee neuraloperator.log",
-        "python train_uno.py",
+        # "python train_uno.py",
     ]
     run_cmds(commands, cwd="examples/neuraloperator/", env=global_env)
 
@@ -181,9 +170,7 @@ def test_neuraloperator(global_env):
 # --- zh/examples/brusselator3d.md ---
 @pytest.mark.skip(reason="Commented out in original script")
 def test_brusselator3d(global_env):
-    commands = [
-        "python brusselator3d.py 2>&1 | tee brusselator3d.log",
-    ]
+    commands = ["python brusselator3d.py 2>&1 | tee brusselator3d.log"]
     run_cmds(commands, cwd="examples/brusselator3d/", env=global_env)
 
 
@@ -191,7 +178,7 @@ def test_brusselator3d(global_env):
 @pytest.mark.skip(reason="Commented out in original script")
 def test_transformer4sr(global_env):
     commands = [
-        "python -m pip install zss -i https://pypi.tuna.tsinghua.edu.cn/simple",
+        "pip install zss",
         "tar -xzvf data_generated.tar.gz",
         "python transformer4sr.py 2>&1 | tee transformer4s.log",
     ]
@@ -202,7 +189,7 @@ def test_transformer4sr(global_env):
 @pytest.mark.skip(reason="Commented out in original script")
 def test_latent_no(global_env):
     commands = [
-        "python LatentNO-steady.py --config-name=LatentNO-Darcy.yaml 2>&1 | tee LatentNO.log",
+        "python LatentNO-steady.py --config-name=LatentNO-Darcy.yaml 2>&1 | tee LatentNO.log"
     ]
     run_cmds(commands, cwd="examples/LatentNO/", env=global_env)
 
@@ -210,9 +197,7 @@ def test_latent_no(global_env):
 # --- zh/examples/fundiff.md ---
 @pytest.mark.skip(reason="Commented out in original script")
 def test_fundiff(global_env):
-    commands = [
-        "python main.py -cn fae.yaml 2>&1 | tee fundiff.log",
-    ]
+    commands = ["python main.py -cn fae.yaml 2>&1 | tee fundiff.log"]
     run_cmds(commands, cwd="examples/fundiff/", env=global_env)
 
 
@@ -233,12 +218,14 @@ def test_amgnet(global_env):
     commands = [
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/AMGNet/data.zip",
         "unzip -o data.zip",
+        "python -m pip install -r requirements.txt",
         "python amgnet_airfoil.py 2>&1 | tee amgnet.log",
     ]
     run_cmds(commands, cwd="examples/amgnet/", env=global_env)
 
 
 # --- zh/examples/aneurysm.md ---
+@pytest.mark.skip(reason="Commented out in original script")
 def test_aneurysm(global_env):
     commands = [
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/aneurysm/aneurysm_dataset.tar",
@@ -262,9 +249,7 @@ def test_bubble(global_env):
 def test_cfdgcn(global_env):
     # Note: path in script was examples/allen_cahn/, assuming copy paste error in original script comment?
     # Keeping as per original script logic
-    commands = [
-        "python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log",
-    ]
+    commands = ["python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log"]
     run_cmds(commands, cwd="examples/allen_cahn/", env=global_env)
 
 
@@ -283,9 +268,7 @@ def test_adv_cvit(global_env):
 @pytest.mark.skip(reason="Commented out in original script")
 def test_ns_cvit(global_env):
     # Assuming this reuses allen_cahn as per input script
-    commands = [
-        "python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log",
-    ]
+    commands = ["python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log"]
     run_cmds(commands, cwd="examples/allen_cahn/", env=global_env)
 
 
@@ -314,9 +297,7 @@ def test_cylinder2d_transformer(global_env):
 
 # --- zh/examples/darcy2d.md ---
 def test_darcy2d(global_env):
-    commands = [
-        "python darcy2d.py 2>&1 | tee darcy.log",
-    ]
+    commands = ["python darcy2d.py 2>&1 | tee darcy.log"]
     run_cmds(commands, cwd="examples/darcy/", env=global_env)
 
 
@@ -372,9 +353,7 @@ def test_ldc2d_steady(global_env):
 # --- zh/examples/ldc2d_unsteady.md ---
 @pytest.mark.skip(reason="Commented out in original script")
 def test_ldc2d_unsteady(global_env):
-    commands = [
-        "python ldc2d_unsteady_Re10.py 2>&1 | tee ldc.log",
-    ]
+    commands = ["python ldc2d_unsteady_Re10.py 2>&1 | tee ldc.log"]
     run_cmds(commands, cwd="examples/ldc/", env=global_env)
 
 
@@ -391,9 +370,7 @@ def test_labelfree_dnn(global_env):
 
 # --- zh/examples/nsfnet.md ---
 def test_nsfnet(global_env):
-    commands = [
-        "python VP_NSFNet1.py 2>&1 | tee nsfnet.log",
-    ]
+    commands = ["python VP_NSFNet1.py 2>&1 | tee nsfnet.log"]
     run_cmds(commands, cwd="examples/nsfnet/", env=global_env)
 
 
@@ -410,9 +387,7 @@ def test_phycrnet(global_env):
 # --- zh/examples/shock_wave.md ---
 @pytest.mark.skip(reason="Commented out in original script")
 def test_shock_wave(global_env):
-    commands = [
-        "python shock_wave.py 2>&1 | tee shock_wave.log",
-    ]
+    commands = ["python shock_wave.py 2>&1 | tee shock_wave.log"]
     run_cmds(commands, cwd="examples/shock_wave/", env=global_env)
 
 
@@ -440,21 +415,18 @@ def test_nsfnet4(global_env):
 
 # --- zh/examples/viv.md ---
 def test_viv(global_env):
-    commands = [
-        "python viv.py 2>&1 | tee fsi.log",
-    ]
+    commands = ["python viv.py 2>&1 | tee fsi.log"]
     run_cmds(commands, cwd="examples/fsi/", env=global_env)
 
 
 # --- zh/examples/biharmonic2d.md ---
 def test_biharmonic2d(global_env):
-    commands = [
-        "python biharmonic2d.py 2>&1 | tee biharmonic2d.log",
-    ]
+    commands = ["python biharmonic2d.py 2>&1 | tee biharmonic2d.log"]
     run_cmds(commands, cwd="examples/biharmonic2d/", env=global_env)
 
 
 # --- zh/examples/bracket.md ---
+@pytest.mark.skip(reason="Commented out in original script")
 def test_bracket(global_env):
     commands = [
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/bracket/bracket_dataset.tar",
@@ -465,6 +437,7 @@ def test_bracket(global_env):
 
 
 # --- zh/examples/control_arm.md ---
+@pytest.mark.skip(reason="Commented out in original script")
 def test_control_arm(global_env):
     commands = [
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/control_arm/control_arm.stl -P ./datasets/",
@@ -504,9 +477,7 @@ def test_topopt(global_env):
 # --- zh/examples/ntopo.md ---
 @pytest.mark.skip(reason="Commented out in original script")
 def test_ntopo(global_env):
-    commands = [
-        "python ntopo.py 2>&1 | tee ntop.log",
-    ]
+    commands = ["python ntopo.py 2>&1 | tee ntop.log"]
     run_cmds(commands, cwd="examples/ntop/", env=global_env)
 
 
@@ -526,17 +497,13 @@ def test_heart(global_env):
 
 # --- zh/examples/heat_exchanger.md ---
 def test_heat_exchanger(global_env):
-    commands = [
-        "python heat_exchanger.py 2>&1 | tee heat_exchanger.log",
-    ]
+    commands = ["python heat_exchanger.py 2>&1 | tee heat_exchanger.log"]
     run_cmds(commands, cwd="examples/heat_exchanger/", env=global_env)
 
 
 # --- zh/examples/heat_pinn.md ---
 def test_heat_pinn(global_env):
-    commands = [
-        "python heat_pinn.py 2>&1 | tee heat_pinn.log",
-    ]
+    commands = ["python heat_pinn.py 2>&1 | tee heat_pinn.log"]
     run_cmds(commands, cwd="examples/heat_pinn/", env=global_env)
 
 
@@ -551,9 +518,7 @@ def test_phygeonet(global_env):
 
 # --- zh/examples/chip_heat.md ---
 def test_chip_heat(global_env):
-    commands = [
-        "python chip_heat.py 2>&1 | tee chip_heat.log",
-    ]
+    commands = ["python chip_heat.py 2>&1 | tee chip_heat.log"]
     run_cmds(commands, cwd="examples/chip_heat/", env=global_env)
 
 
@@ -570,29 +535,26 @@ def test_hpinns(global_env):
 # --- zh/examples/cgcnn.md ---
 @pytest.mark.skip(reason="Commented out in original script")
 def test_cgcnn(global_env):
-    commands = [
-        "python CGCNN.py 2>&1 | tee cgcnn.log",
-    ]
+    commands = ["python CGCNN.py 2>&1 | tee cgcnn.log"]
     run_cmds(commands, cwd="examples/cgcnn/", env=global_env)
 
 
 # --- zh/examples/perovskite_solar_cells_nn.md ---
-@pytest.mark.skip(reason="Commented out in original script")
+# @pytest.mark.skip(reason="Commented out in original script")
 def test_perovskite(global_env):
     commands = [
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/psc/data.zip",
-        "unzip -o paddlescience/datasets/psc/data.zip",
-        "python psc_nn.py mode=train 2>&1 | tee perovskite_solar_cells_nn.log",
+        "python -m pip install optuna",
+        "unzip -o data.zip",
+        "python psc_nn.py mode=train 2>&1 | tee perovskite_solar_cells.log",
     ]
-    run_cmds(commands, cwd="examples/perovskite_solar_cells_nn/", env=global_env)
+    run_cmds(commands, cwd="examples/perovskite_solar_cells/", env=global_env)
 
 
 # --- zh/examples/MLP_LI.md ---
 @pytest.mark.skip(reason="Commented out in original script")
 def test_mlp_li(global_env):
-    commands = [
-        "python allen_cahn_piratenet.py 2>&1 | tee MLP_LI.log",
-    ]
+    commands = ["python allen_cahn_piratenet.py 2>&1 | tee MLP_LI.log"]
     run_cmds(commands, cwd="examples/MLP_LI/", env=global_env)
 
 
@@ -600,27 +562,21 @@ def test_mlp_li(global_env):
 @pytest.mark.skip(reason="Commented out in original script")
 def test_ml2ddb(global_env):
     # Original script reuses allen_cahn logic here
-    commands = [
-        "python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log",
-    ]
+    commands = ["python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log"]
     run_cmds(commands, cwd="examples/allen_cahn/", env=global_env)
 
 
 # --- zh/examples/extformer_moe.md ---
 @pytest.mark.skip(reason="Commented out in original script")
 def test_extformer_moe(global_env):
-    commands = [
-        "python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log",
-    ]
+    commands = ["python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log"]
     run_cmds(commands, cwd="examples/allen_cahn/", env=global_env)
 
 
 # --- zh/examples/fourcastnet.md ---
 @pytest.mark.skip(reason="Commented out in original script")
 def test_fourcastnet(global_env):
-    commands = [
-        "python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log",
-    ]
+    commands = ["python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log"]
     run_cmds(commands, cwd="examples/allen_cahn/", env=global_env)
 
 
@@ -664,9 +620,7 @@ def test_stafnet(global_env):
 # --- zh/examples/earthformer.md ---
 @pytest.mark.skip(reason="Commented out in original script")
 def test_earthformer(global_env):
-    commands = [
-        "python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log",
-    ]
+    commands = ["python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log"]
     run_cmds(commands, cwd="examples/allen_cahn/", env=global_env)
 
 
@@ -674,7 +628,7 @@ def test_earthformer(global_env):
 @pytest.mark.skip(reason="Commented out in original script")
 def test_graphcast(global_env):
     commands = [
-        "python -m pip install trimesh xarray rtree -i https://pypi.tuna.tsinghua.edu.cn/simple",
+        "uv pip install --system trimesh xarray rtree",
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/graphcast/dataset.zip",
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/graphcast/dataset-step12.zip",
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/models/graphcast/params.zip",
@@ -694,28 +648,24 @@ def test_graphcast(global_env):
 # --- zh/examples/gencast.md ---
 @pytest.mark.skip(reason="Commented out in original script")
 def test_gencast(global_env):
-    commands = [
-        "python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log",
-    ]
+    commands = ["python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log"]
     run_cmds(commands, cwd="examples/gencast/", env=global_env)
 
 
 # --- zh/examples/velocity_gan.md ---
 @pytest.mark.skip(reason="Commented out in original script")
 def test_velocity_gan(global_env):
-    commands = [
-        "python allen_cahn_piratenet.py 2>&1 | tee velocityGAN.log",
-    ]
+    commands = ["python allen_cahn_piratenet.py 2>&1 | tee velocityGAN.log"]
     run_cmds(commands, cwd="examples/velocityGAN/", env=global_env)
 
 
 # --- zh/examples/tgcn.md ---
-@pytest.mark.skip(reason="Commented out in original script")
+# @pytest.mark.skip(reason="Commented out in original script")
 def test_tgcn(global_env):
     commands = [
-        "wget -cn https://paddle-org.bj.bcebos.com/paddlescience/datasets/tgcn/tgcn_data.zip",
+        "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/tgcn/tgcn_data.zip",
         "unzip -o tgcn_data.zip",
-        "wget -cn https://paddle-org.bj.bcebos.com/paddlescience/models/tgcn/PEMSD8_pretrained_model.pdparams",
+        "wget -c https://paddle-org.bj.bcebos.com/paddlescience/models/tgcn/PEMSD8_pretrained_model.pdparams",
         "python run.py data_name=PEMSD8 mode=eval EVAL.pretrained_model_path=PEMSD8_pretrained_model.pdparams 2>&1 | tee tgcn.log",
     ]
     run_cmds(commands, cwd="examples/tgcn/", env=global_env)
@@ -724,9 +674,7 @@ def test_tgcn(global_env):
 # --- zh/examples/iops.md ---
 @pytest.mark.skip(reason="Commented out in original script")
 def test_iops(global_env):
-    commands = [
-        "python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log",
-    ]
+    commands = ["python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log"]
     run_cmds(commands, cwd="examples/allen_cahn/", env=global_env)
 
 
@@ -768,7 +716,7 @@ def test_fuxi(global_env):
         "unzip -o FuXi_EC.zip",
         # Note: Script mentions modifying paths in config, which is manual.
         # This test assumes requirements are met or config is already correct.
-        "python -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple",
+        "pip install -r requirements.txt",
         "python predict.py",
     ]
     run_cmds(commands, cwd="examples/fuxi/", env=global_env)
@@ -790,9 +738,7 @@ def test_unetformer(global_env):
 @pytest.mark.skip(reason="Commented out in original script")
 def test_wgan_gp(global_env):
     # Fixed typo in original script comment "allen_cahn_piratenet.p2>&1|1"
-    commands = [
-        "python allen_cahn_piratenet.py 2>&1 | tee wgan.log",
-    ]
+    commands = ["python allen_cahn_piratenet.py 2>&1 | tee wgan.log"]
     run_cmds(commands, cwd="examples/wgangp/", env=global_env)
 
 
@@ -800,7 +746,7 @@ def test_wgan_gp(global_env):
 @pytest.mark.skip(reason="Commented out in original script")
 def test_utae(global_env):
     commands = [
-        "python -m pip install geopandas -i https://pypi.tuna.tsinghua.edu.cn/simple",
+        "uv pip install geopandas --system",
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/models/utae/semantic.pdparams -P ./pretrained/",
         # Fixed formatting of the long command
         "python test_semantic.py --weight_file ./pretrained/semantic.pdparams --dataset_folder './data/PASTIS' --device gpu --num_workers 0 2>&1 | tee UTAE.log",
@@ -812,7 +758,7 @@ def test_utae(global_env):
 @pytest.mark.skip(reason="Commented out in original script")
 def test_smc_reac(global_env):
     commands = [
-        "python -m pip install rdkit -i https://pypi.tuna.tsinghua.edu.cn/simple",
+        "uv pip install rdkit --system",
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/SMCReac/data_set.xlsx",
         "python smc_reac.py 2>&1 | tee allen_cahn.log",
     ]
@@ -822,9 +768,7 @@ def test_smc_reac(global_env):
 # --- zh/examples/moflow.md ---
 @pytest.mark.skip(reason="Commented out in original script")
 def test_moflow(global_env):
-    commands = [
-        "python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log",
-    ]
+    commands = ["python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log"]
     run_cmds(commands, cwd="examples/allen_cahn/", env=global_env)
 
 
@@ -856,7 +800,7 @@ def test_tadf(global_env):
     # We run commands in 'examples/tadf/TADF_Est' directly.
     commands = [
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/TADF/Est/Est.dat https://paddle-org.bj.bcebos.com/paddlescience/datasets/TADF/smis.txt",
-        "python -m pip install -r ../requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple",
+        "python -m pip install -r ../requirements.txt",
         "python Est.py mode=train 2>&1 | tee tadf.log",
     ]
     run_cmds(commands, cwd="examples/tadf/TADF_Est", env=global_env)

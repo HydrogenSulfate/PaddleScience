@@ -109,7 +109,7 @@ def test_lorenz(global_env):
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/lorenz_training_rk.hdf5 -P ./datasets/",
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/lorenz_valid_rk.hdf5 -P ./datasets/",
         "python train_enn.py 2>&1 | tee lorenz.log",
-        # "python train_transformer.py" # This was commented in original,
+        # "python train_transformer.py" # This was commented in original
     ]
     run_cmds(commands, cwd="examples/lorenz/", env=global_env)
 
@@ -128,7 +128,7 @@ def test_rossler(global_env):
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/rossler_training.hdf5 -P ./datasets/ 2>&1 | tee rossler.log",
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/rossler_valid.hdf5 -P ./datasets/",
         "python train_enn.py",
-        # "python train_transformer.py" # Commented in original,
+        # "python train_transformer.py" # Commented in original
     ]
     run_cmds(commands, cwd="examples/rossler/", env=global_env)
 
@@ -311,7 +311,7 @@ def test_cylinder2d_transformer(global_env):
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/cylinder_training.hdf5 -P ./datasets/",
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/transformer_physx/cylinder_valid.hdf5 -P ./datasets/",
         "python train_enn.py 2>&1 | tee transformer_phys.log"
-        # "python train_transformer.py" # Commented,
+        # "python train_transformer.py" # Commented
     ]
     run_cmds(
         commands, cwd="examples/cylinder/2d_unsteady/transformer_physx", env=global_env
