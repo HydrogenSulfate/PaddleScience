@@ -33,7 +33,9 @@ class MaxAE(base.Metric):
     $$
 
     Args:
-        keep_batch (bool, optional): Whether keep batch axis. Defaults to False.
+        keep_batch (bool, optional): Whether to keep the batch dimension.
+            L2Rel computes a global L2 relative error over all samples, thus
+            keep_batch must be False. Defaults to False.
 
     Examples:
         >>> import paddle

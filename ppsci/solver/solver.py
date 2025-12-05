@@ -520,10 +520,12 @@ class Solver:
             jit.enable_to_static(self.to_static)
             logger.message("Enable jit.to_static for computational optimization.")
             self.forward_helper.train_forward = paddle.jit.to_static(
-                self.forward_helper.train_forward
+                self.forward_helper.train_forward,
+                full_graph=True,
             )
             self.forward_helper.eval_forward = paddle.jit.to_static(
-                self.forward_helper.eval_forward
+                self.forward_helper.eval_forward,
+                full_graph=True,
             )
 
         # convert sympy to callable object if exist

@@ -22,16 +22,16 @@ import paddle
 from ppsci.metric import base
 
 
-class L2Rel(base.Metric):
-    r"""Class for l2 relative error.
+class L1Rel(base.Metric):
+    r"""Class for l1 relative error.
 
-    NOTE: This metric API is slightly different from `MeanL2Rel`, difference is as below:
+    NOTE: This metric API is slightly different from `MeanL1Rel`, difference is as below:
 
-    - `L2Rel` regards the input sample as a whole and calculates the l2 relative error of the whole;
-    - `MeanL2Rel` will calculate L2Rel separately for each input sample and return the average of l2 relative error for all samples.
+    - `L1Rel` regards the input sample as a whole and calculates the l1 relative error of the whole;
+    - `MeanL1Rel` will calculate L1Rel separately for each input sample and return the average of l1 relative error for all samples.
 
     $$
-    metric = \dfrac{\Vert \mathbf{x} - \mathbf{y} \Vert_2}{\max(\Vert \mathbf{y} \Vert_2, \epsilon)}
+    metric = \dfrac{\Vert \mathbf{x} - \mathbf{y} \Vert_1}{\max(\Vert \mathbf{y} \Vert_1, \epsilon)}
     $$
 
     $$
@@ -45,12 +45,12 @@ class L2Rel(base.Metric):
 
     Examples:
         >>> import paddle
-        >>> from ppsci.metric import L2Rel
+        >>> from ppsci.metric import L1Rel
         >>> output_dict = {'u': paddle.to_tensor([[0.5, 0.9], [1.1, -1.3]]),
         ...                'v': paddle.to_tensor([[0.5, 0.9], [1.1, -1.3]])}
         >>> label_dict = {'u': paddle.to_tensor([[-1.8, 1.0], [-0.2, 2.5]]),
         ...               'v': paddle.to_tensor([[0.1, 0.1], [0.1, 0.1]])}
-        >>> loss = L2Rel()
+        >>> loss = L1Rel()
         >>> result = loss(output_dict, label_dict)
         >>> print(result)
         {'u': Tensor(shape=[], dtype=float32, place=Place(gpu:0), stop_gradient=True,
@@ -71,24 +71,24 @@ class L2Rel(base.Metric):
     def forward(self, output_dict, label_dict) -> Dict[str, "paddle.Tensor"]:
         metric_dict = {}
         for key in label_dict:
-            rel_l2 = paddle.norm(label_dict[key] - output_dict[key], p=2) / paddle.norm(
+            rel_l1 = paddle.norm(label_dict[key] - output_dict[key], p=2) / paddle.norm(
                 label_dict[key], p=2
             ).clip(min=self.EPS)
-            metric_dict[key] = rel_l2
+            metric_dict[key] = rel_l1
 
         return metric_dict
 
 
-class MeanL2Rel(base.Metric):
-    r"""Class for mean l2 relative error.
+class MeanL1Rel(base.Metric):
+    r"""Class for mean l1 relative error.
 
-    NOTE: This metric API is slightly different from `L2Rel`, difference is as below:
+    NOTE: This metric API is slightly different from `L1Rel`, difference is as below:
 
-    - `MeanL2Rel` will calculate L2Rel separately for each input sample and return the average of l2 relative error for all samples.
-    - `L2Rel` regards the input sample as a whole and calculates the l2 relative error of the whole;
+    - `MeanL1Rel` will calculate L1Rel separately for each input sample and return the average of l1 relative error for all samples.
+    - `L1Rel` regards the input sample as a whole and calculates the l1 relative error of the whole;
 
     $$
-    metric = \dfrac{1}{M} \sum_{i=1}^{M}\dfrac{\Vert \mathbf{x_i} - \mathbf{y_i} \Vert_2}{\max(\Vert \mathbf{y_i} \Vert_2, \epsilon) }
+    metric = \dfrac{1}{M} \sum_{i=1}^{M}\dfrac{\Vert \mathbf{x_i} - \mathbf{y_i} \Vert_1}{\max(\Vert \mathbf{y_i} \Vert_1, \epsilon) }
     $$
 
     $$
@@ -102,18 +102,18 @@ class MeanL2Rel(base.Metric):
 
     Examples:
         >>> import paddle
-        >>> from ppsci.metric import MeanL2Rel
+        >>> from ppsci.metric import MeanL1Rel
         >>> output_dict = {'u': paddle.to_tensor([[0.5, 0.9], [1.1, -1.3]]),
         ...                'v': paddle.to_tensor([[0.5, 0.9], [1.1, -1.3]])}
         >>> label_dict = {'u': paddle.to_tensor([[-1.8, 1.0], [-0.2, 2.5]]),
         ...               'v': paddle.to_tensor([[0.1, 0.1], [0.1, 0.1]])}
-        >>> loss = MeanL2Rel()
+        >>> loss = MeanL1Rel()
         >>> result = loss(output_dict, label_dict)
         >>> print(result)
         {'u': Tensor(shape=[], dtype=float32, place=Place(gpu:0), stop_gradient=True,
                1.35970235), 'v': Tensor(shape=[], dtype=float32, place=Place(gpu:0), stop_gradient=True,
                9.24504089)}
-        >>> loss = MeanL2Rel(keep_batch=True)
+        >>> loss = MeanL1Rel(keep_batch=True)
         >>> result = loss(output_dict, label_dict)
         >>> print(result)
         {'u': Tensor(shape=[2], dtype=float32, place=Place(gpu:0), stop_gradient=True,
@@ -132,12 +132,12 @@ class MeanL2Rel(base.Metric):
     def forward(self, output_dict, label_dict) -> Dict[str, "paddle.Tensor"]:
         metric_dict = {}
         for key in label_dict:
-            rel_l2 = paddle.norm(
-                label_dict[key] - output_dict[key], p=2, axis=1
-            ) / paddle.norm(label_dict[key], p=2, axis=1).clip(min=self.EPS)
+            rel_l1 = paddle.norm(
+                label_dict[key] - output_dict[key], p=1, axis=1
+            ) / paddle.norm(label_dict[key], p=1, axis=1).clip(min=self.EPS)
             if self.keep_batch:
-                metric_dict[key] = rel_l2
+                metric_dict[key] = rel_l1
             else:
-                metric_dict[key] = rel_l2.mean()
+                metric_dict[key] = rel_l1.mean()
 
         return metric_dict

@@ -38,7 +38,9 @@ class RMSE(base.Metric):
     $$
 
     Args:
-        keep_batch (bool, optional): Whether keep batch axis. Defaults to False.
+        keep_batch (bool, optional): Whether to keep the batch dimension.
+            L2Rel computes a global L2 relative error over all samples, thus
+            keep_batch must be False. Defaults to False.
 
     Examples:
         >>> import paddle
@@ -87,7 +89,9 @@ class LatitudeWeightedRMSE(base.Metric):
     Args:
         num_lat (int): Number of latitude.
         std (Optional[Union[np.array, Tuple[float, ...]]]): Standard Deviation of training dataset. Defaults to None.
-        keep_batch (bool, optional): Whether keep batch axis. Defaults to False.
+        keep_batch (bool, optional): Whether to keep the batch dimension.
+            L2Rel computes a global L2 relative error over all samples, thus
+            keep_batch must be False. Defaults to False.
         variable_dict (Optional[Dict[str, int]]): Variable dictionary, the key is the name of a variable and
             the value is its index. Defaults to None.
         unlog (bool, optional): Whether calculate expm1 for all elements in the array. Defaults to False.

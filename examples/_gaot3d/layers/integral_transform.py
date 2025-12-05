@@ -1,0 +1,173 @@
+from __future__ import annotations
+
+from typing import Optional
+
+import paddle
+
+from .mlp import LinearChannelMLP
+
+try:
+    import paddle_scatter
+
+    if hasattr(paddle_scatter, "scatter"):
+        scatter = paddle_scatter.scatter
+        HAS_PADDLE_SCATTER = True
+        print("Using paddle_scatter.scatter for aggregation.")
+    else:
+        HAS_PADDLE_SCATTER = False
+except ImportError:
+    HAS_PADDLE_SCATTER = False
+if not HAS_PADDLE_SCATTER:
+    print(
+        "Warning: paddle_scatter.scatter not found. Using native PyTorch fallbacks (potentially slower)."
+    )
+    from .utils.scatter_native import scatter_native
+
+    scatter = scatter_native
+"""
+Reference: https://github.com/neuraloperator/neuraloperator/blob/main/neuralop/layers/integral_transform.py
+"""
+
+
+class IntegralTransform(paddle.nn.Layer):
+    def __init__(
+        self,
+        channel_mlp=None,
+        channel_mlp_layers=None,
+        channel_mlp_non_linearity=paddle.nn.functional.gelu,
+        transform_type="linear",
+        use_attn=None,
+        coord_dim=None,
+        attention_type="cosine",
+    ):
+        super().__init__()
+        self.transform_type = transform_type
+        self.use_attn = use_attn
+        self.coord_dim = coord_dim
+        self.attention_type = attention_type
+        if channel_mlp is None:
+            if channel_mlp_layers is None:
+                raise ValueError("Need channel_mlp or layers")
+            self.channel_mlp = LinearChannelMLP(
+                layers=channel_mlp_layers, non_linearity=channel_mlp_non_linearity
+            )
+        else:
+            self.channel_mlp = channel_mlp
+        if self.use_attn:
+            if coord_dim is None:
+                raise ValueError("coord_dim must be specified when use_attn is True")
+            if self.attention_type == "dot_product":
+                attention_dim = 64
+                self.query_proj = paddle.nn.Linear(
+                    in_features=self.coord_dim, out_features=attention_dim
+                )
+                self.key_proj = paddle.nn.Linear(
+                    in_features=self.coord_dim, out_features=attention_dim
+                )
+                self.scaling_factor = 1.0 / attention_dim**0.5
+            elif self.attention_type == "cosine":
+                pass
+            else:
+                raise ValueError(
+                    f"Invalid attention_type: {self.attention_type}. Must be 'cosine' or 'dot_product'."
+                )
+
+    def _segment_softmax_pyg(
+        self, scores: paddle.Tensor, index: paddle.Tensor, dim_size: int
+    ) -> paddle.Tensor:
+        """Applies softmax per segment based on index using paddle_scatter."""
+        scores_max = scatter(scores, index, dim=0, dim_size=dim_size, reduce="max")
+        scores_max_expanded = scores_max[index]
+        scores = scores - scores_max_expanded
+        exp_scores = paddle.exp(x=scores)
+        exp_sum = scatter(exp_scores, index, dim=0, dim_size=dim_size, reduce="sum")
+        exp_sum_clamped = paddle.clamp(exp_sum, min=paddle.finfo(exp_sum.dtype).tiny)
+        exp_sum_expanded = exp_sum_clamped[index]
+        attention_weights = exp_scores / exp_sum_expanded
+        return attention_weights
+
+    def forward(
+        self,
+        y_pos: paddle.Tensor,
+        x_pos: paddle.Tensor,
+        edge_index: paddle.Tensor,
+        f_y: Optional[paddle.Tensor] = None,
+        weights: Optional[paddle.Tensor] = None,
+        batch_y=None,
+        batch_x=None,
+    ):
+        """
+        Compute kernel integral transform using PyG edge_index.
+
+        Args:
+            y_pos (Tensor): Source node coordinates [N_y, D] (or [TotalNodes_y, D] if batched).
+            x_pos (Tensor): Query node coordinates [N_x, D] (or [TotalNodes_x, D] if batched).
+            edge_index (Tensor): Edge index [2, NumEdges] where edge_index[1] indexes into x_pos (query)
+                                 and edge_index[0] indexes into y_pos (source).
+            f_y (Tensor, optional): Source node features [N_y, C_in] (or [TotalNodes_y, C_in] if batched).
+            weights (Tensor, optional): Edge weights [NumEdges,]. Not typically volume weights here.
+            batch_y (Tensor, optional): Batch assignment for y_pos nodes [TotalNodes_y].
+            batch_x (Tensor, optional): Batch assignment for x_pos nodes [TotalNodes_x]. Required if using batching.
+        """
+        device = x_pos.place
+        num_query_nodes = x_pos.shape[0]
+        sampled_edge_index = edge_index.to(device)
+        num_sampled_edges = sampled_edge_index.shape[1]
+        if num_sampled_edges == 0:
+            output_channels = self.channel_mlp.fcs[-1].out_features
+            output_shape = [num_query_nodes, output_channels]
+            if batch_x is not None and f_y is not None and f_y.ndim == 3:
+                pass
+            return paddle.zeros(
+                output_shape, device=device, dtype=self.channel_mlp.fcs[-1].weight.dtype
+            )
+        query_idx = sampled_edge_index[1].long()
+        source_idx = sampled_edge_index[0].long()
+        rep_features_pos = y_pos[source_idx]
+        self_features_pos = x_pos[query_idx]
+        in_features = None
+        if f_y is not None:
+            in_features = f_y[source_idx]
+        attention_weights = None
+        if self.use_attn:
+            query_coords = self_features_pos[:, : self.coord_dim]
+            key_coords = rep_features_pos[:, : self.coord_dim]
+            if self.attention_type == "dot_product":
+                query = self.query_proj(query_coords)
+                key = self.key_proj(key_coords)
+                attention_scores = paddle.sum(query * key, dim=-1) * self.scaling_factor
+            elif self.attention_type == "cosine":
+                query_norm = paddle.nn.functional.normalize(
+                    x=query_coords, p=2, axis=-1
+                )
+                key_norm = paddle.nn.functional.normalize(x=key_coords, p=2, axis=-1)
+                attention_scores = paddle.sum(query_norm * key_norm, dim=-1)
+            else:
+                raise ValueError(f"Invalid attention_type: {self.attention_type}")
+            attention_weights = self._segment_softmax_pyg(
+                attention_scores, query_idx, num_query_nodes
+            )
+        agg_features = paddle.cat([rep_features_pos, self_features_pos], dim=-1)
+        if in_features is not None and (
+            self.transform_type == "nonlinear_kernelonly"
+            or self.transform_type == "nonlinear"
+        ):
+            agg_features = paddle.cat([agg_features, in_features], dim=-1)
+        rep_features_transformed = self.channel_mlp(agg_features)
+        if in_features is not None and self.transform_type != "nonlinear_kernelonly":
+            rep_features_transformed = rep_features_transformed * in_features
+        if attention_weights is not None:
+            rep_features_transformed = (
+                rep_features_transformed * attention_weights.unsqueeze(-1)
+            )
+        reduction = "sum" if self.use_attn and attention_weights is not None else "mean"
+        out_features = scatter(
+            src=rep_features_transformed,
+            index=query_idx.long(),
+            dim=0,
+            dim_size=num_query_nodes,
+            reduce=reduction,
+        )
+        if HAS_PADDLE_SCATTER and (reduction == "max" or reduction == "min"):
+            out_features = out_features[0]
+        return out_features

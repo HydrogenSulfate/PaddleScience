@@ -20,10 +20,11 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from omegaconf import DictConfig
 
-
 from ppsci.metric.anomaly_coef import LatitudeWeightedACC
 from ppsci.metric.base import Metric
 from ppsci.metric.func import FunctionalMetric
+from ppsci.metric.l1_rel import L1Rel
+from ppsci.metric.l1_rel import MeanL1Rel
 from ppsci.metric.l2_rel import L2Rel
 from ppsci.metric.l2_rel import MeanL2Rel
 from ppsci.metric.mae import MAE
@@ -38,7 +39,9 @@ __all__ = [
     "LatitudeWeightedACC",
     "Metric",
     "FunctionalMetric",
+    "L1Rel",
     "L2Rel",
+    "MeanL1Rel",
     "MeanL2Rel",
     "MAE",
     "MaxAE",

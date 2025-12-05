@@ -1,0 +1,148 @@
+defaults:
+- ppsci_default
+- TRAIN: train_default
+- TRAIN/ema: ema_default
+- TRAIN/swa: swa_default
+- EVAL: eval_default
+- INFER: infer_default
+- MODEL: gaot3d_default
+- MODEL/magno: gaot3d_magno_default
+- MODEL/transformer: gaot3d_transformer_default
+- hydra/job/config/override_dirname/exclude_keys: exclude_keys_default
+- _self_
+
+hydra:
+  run:
+    # dynamic output directory according to running time and override name
+    # dir: outputs_gaot3d/${now:%Y-%m-%d}/${now:%H-%M-%S}_${mode}/
+    dir: outputs_gaot3d/
+  job:
+    name: ${mode} # name of logfile
+    chdir: false # keep current working directory unchanged
+  callbacks:
+    init_callback:
+      _target_: ppsci.utils.callbacks.InitCallback
+  sweep:
+    # output directory for multirun
+    dir: ${hydra.run.dir}
+    subdir: ./
+
+# general settings
+mode: train # running mode: train/eval
+seed: 42
+output_dir: ${hydra:run.dir}
+log_freq: 100
+use_wandb: false
+wandb_name: gaot-drivaernet-pressure
+
+DATA:
+  input_keys: [x]
+  label_keys: [press]
+  metaname: "incompressible_fluids/drivaernet_pressure"
+  base_path: "/cluster/work/math/camlab-data/graphnpde/drivaernet/"
+  processed_folder: "processed_pyg_normals"
+  force_recompute_stats: false
+  train_size: 5817
+  val_size: 1148
+  test_size: 1154
+  batch_size: 1
+  num_workers: 4
+  shuffle: true
+  metric_suite: "drivaernet"
+  update_pt_files_with_edges: false
+
+# model settings
+MODEL:
+  input_keys: [x ]
+  output_keys: [press] # vel: 3, press: 1
+  input_size: 6
+  output_size: 1
+  use_conditional_norm: false
+  latent_tokens: [64, 64, 32]
+
+  magno:
+    use_gno: true
+    gno_coord_dim: 3
+    neighbor_strategy: "bidirectional"
+    projection_channels: 256
+    in_gno_channel_mlp_hidden_layers: [ 64, 64, 64 ]
+    out_gno_channel_mlp_hidden_layers: [ 64, 64 ]
+    lifting_channels: 32
+    gno_radius: 0.033
+    gno_use_torch_cluster: true
+    attention_type: "cosine"
+    use_geoembed: [ true, false ]
+    embedding_method: "statistical"
+    encoder_feature_attr: [ "pos", "c" ]
+    mlp_type: "linear"
+    precompute_edges: true
+    asynchronous_graph_building: false
+  transformer:
+    patch_size: 2
+    hidden_size: 256
+    use_attn_norm: true
+    use_ffn_norm: true
+    norm_eps: 1e-6
+    num_layers: 10
+    positional_embedding: "rope"
+    use_long_range_skip: true
+    attn_config:
+      hidden_size: 256
+      num_heads: 8
+      num_kv_heads: 8
+      use_conditional_norm: false
+      cond_norm_hidden_size: 4
+      D: ${MODEL.latent_tokens[0]}
+      H: ${MODEL.latent_tokens[1]}
+      W: ${MODEL.latent_tokens[2]}
+    ffn_config:
+      hidden_size: 1024
+      use_conditional_norm: false
+      cond_norm_hidden_size: 4
+
+# training settings
+TRAIN:
+  epochs: 200
+  iters_per_epoch: -1
+  optimizer:
+    weight_decay: 1e-5
+    epoch: 50
+    loss_scale: 1.0
+    eval_every_eps: 2
+    scheduler: "mix"
+    save_every_epochs: 100
+  lr:
+    max_lr: 5e-4
+    min_lr: 1e-4
+    final_lr: 5e-5
+  batch_size: 1
+  press_weight: 1.0
+  save_freq: 20
+  eval_freq: 10
+  eval_during_train: true
+  pretrained_model_path: null
+  checkpoint_path: null
+
+# evaluation settings
+EVAL:
+  batch_size: 1
+  eval_with_no_grad: true
+  pretrained_model_path: ???
+
+# inference settings
+INFER:
+  pretrained_model_path: ???
+  export_path: ./inference/transolver
+  pdmodel_path: ${INFER.export_path}.pdmodel
+  pdiparams_path: ${INFER.export_path}.pdiparams
+  onnx_path: ${INFER.export_path}.onnx
+  device: gpu
+  engine: native
+  precision: fp32
+  ir_optim: true
+  min_subgraph_size: 5
+  gpu_mem: 2000
+  gpu_id: 0
+  max_batch_size: 1024
+  num_cpu_threads: 10
+  batch_size: 1024

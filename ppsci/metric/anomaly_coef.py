@@ -43,7 +43,9 @@ class LatitudeWeightedACC(base.Metric):
     Args:
         num_lat (int): Number of latitude.
         mean (Optional[Union[np.array, Tuple[float, ...]]]): Mean of training data. Defaults to None.
-        keep_batch (bool, optional): Whether keep batch axis. Defaults to False.
+        keep_batch (bool, optional): Whether to keep the batch dimension.
+            L2Rel computes a global L2 relative error over all samples, thus
+            keep_batch must be False. Defaults to False.
         variable_dict (Optional[Dict[str, int]]): Variable dictionary, the key is the name of a variable and
             the value is its index. Defaults to None.
         unlog (bool, optional): Whether calculate expm1 for all elements in the array. Defaults to False.
