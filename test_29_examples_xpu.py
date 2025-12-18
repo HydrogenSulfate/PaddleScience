@@ -1,3 +1,10 @@
+"""
+注意
+XPU上运行最好加上:
+LD_LIBRARY_PATH=/opt/conda/envs/hss/lib/python3.10/site-packages/paddle/libs/:$LD_LIBRARY_PATH
+cufft要优先去paddle/libs下找, 否则会去LD_LIBRARY_PATH找CUDA的so, 导致internal error
+"""
+
 import os
 import subprocess
 
