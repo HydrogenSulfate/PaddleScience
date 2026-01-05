@@ -24,7 +24,7 @@ hydra:
 mode: train # running mode: train/eval/export/infer
 seed: 1024
 output_dir: ${hydra:run.dir}
-log_freq: 20
+log_freq: 100
 
 # set training hyper-parameters
 IMG_H: 720
@@ -57,9 +57,9 @@ MODEL:
 
 # training settings
 TRAIN:
-  epochs: 150
+  epochs: 1
   save_freq: 20
-  eval_during_train: true
+  eval_during_train: false
   eval_freq: 20
   lr_scheduler:
     epochs: ${TRAIN.epochs}
