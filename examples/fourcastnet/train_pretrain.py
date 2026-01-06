@@ -170,7 +170,7 @@ def train(cfg: DictConfig):
         lr_scheduler,
         cfg.TRAIN.epochs,
         ITERS_PER_EPOCH,
-        eval_during_train=True,
+        eval_during_train=False,
         seed=cfg.seed,
         validator=validator,
         compute_metric_by_batch=cfg.EVAL.compute_metric_by_batch,
@@ -179,7 +179,7 @@ def train(cfg: DictConfig):
     # train model
     solver.train()
     # evaluate after finished training
-    solver.eval()
+    # solver.eval()
 
 
 def evaluate(cfg: DictConfig):
