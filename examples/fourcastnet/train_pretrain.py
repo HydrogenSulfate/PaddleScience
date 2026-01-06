@@ -77,7 +77,7 @@ def train(cfg: DictConfig):
                 "shuffle": True,
             },
             "batch_size": cfg.TRAIN.batch_size,
-            "num_workers": 8,
+            "num_workers": cfg.TRAIN.num_workers,
         }
     else:
         NUM_GPUS_PER_NODE = 8
@@ -110,46 +110,46 @@ def train(cfg: DictConfig):
     ITERS_PER_EPOCH = len(sup_constraint.data_loader)
 
     # set eval dataloader config
-    eval_dataloader_cfg = {
-        "dataset": {
-            "name": "ERA5Dataset",
-            "file_path": cfg.VALID_FILE_PATH,
-            "input_keys": cfg.MODEL.afno.input_keys,
-            "label_keys": cfg.MODEL.afno.output_keys,
-            "vars_channel": cfg.VARS_CHANNEL,
-            "transforms": transforms,
-            "training": False,
-        },
-        "sampler": {
-            "name": "BatchSampler",
-            "drop_last": False,
-            "shuffle": False,
-        },
-        "batch_size": cfg.EVAL.batch_size,
-    }
+    # eval_dataloader_cfg = {
+    #     "dataset": {
+    #         "name": "ERA5Dataset",
+    #         "file_path": cfg.VALID_FILE_PATH,
+    #         "input_keys": cfg.MODEL.afno.input_keys,
+    #         "label_keys": cfg.MODEL.afno.output_keys,
+    #         "vars_channel": cfg.VARS_CHANNEL,
+    #         "transforms": transforms,
+    #         "training": False,
+    #     },
+    #     "sampler": {
+    #         "name": "BatchSampler",
+    #         "drop_last": False,
+    #         "shuffle": False,
+    #     },
+    #     "batch_size": cfg.EVAL.batch_size,
+    # }
 
     # set validator
-    sup_validator = ppsci.validate.SupervisedValidator(
-        eval_dataloader_cfg,
-        ppsci.loss.L2RelLoss(),
-        metric={
-            "MAE": ppsci.metric.MAE(keep_batch=True),
-            "LatitudeWeightedRMSE": ppsci.metric.LatitudeWeightedRMSE(
-                num_lat=cfg.IMG_H,
-                std=data_std,
-                keep_batch=True,
-                variable_dict={"u10": 0, "v10": 1},
-            ),
-            "LatitudeWeightedACC": ppsci.metric.LatitudeWeightedACC(
-                num_lat=cfg.IMG_H,
-                mean=data_time_mean_normalize,
-                keep_batch=True,
-                variable_dict={"u10": 0, "v10": 1},
-            ),
-        },
-        name="Sup_Validator",
-    )
-    validator = {sup_validator.name: sup_validator}
+    # sup_validator = ppsci.validate.SupervisedValidator(
+    #     eval_dataloader_cfg,
+    #     ppsci.loss.L2RelLoss(),
+    #     metric={
+    #         "MAE": ppsci.metric.MAE(keep_batch=True),
+    #         "LatitudeWeightedRMSE": ppsci.metric.LatitudeWeightedRMSE(
+    #             num_lat=cfg.IMG_H,
+    #             std=data_std,
+    #             keep_batch=True,
+    #             variable_dict={"u10": 0, "v10": 1},
+    #         ),
+    #         "LatitudeWeightedACC": ppsci.metric.LatitudeWeightedACC(
+    #             num_lat=cfg.IMG_H,
+    #             mean=data_time_mean_normalize,
+    #             keep_batch=True,
+    #             variable_dict={"u10": 0, "v10": 1},
+    #         ),
+    #     },
+    #     name="Sup_Validator",
+    # )
+    # validator = {sup_validator.name: sup_validator}
 
     # set model
     model = ppsci.arch.AFNONet(**cfg.MODEL.afno)
@@ -170,16 +170,17 @@ def train(cfg: DictConfig):
         lr_scheduler,
         cfg.TRAIN.epochs,
         ITERS_PER_EPOCH,
-        eval_during_train=True,
+        eval_during_train=False,
         seed=cfg.seed,
-        validator=validator,
+        update_freq=cfg.TRAIN.update_freq,
+        # validator=validator,
         compute_metric_by_batch=cfg.EVAL.compute_metric_by_batch,
         eval_with_no_grad=cfg.EVAL.eval_with_no_grad,
     )
     # train model
     solver.train()
     # evaluate after finished training
-    solver.eval()
+    # solver.eval()
 
 
 def evaluate(cfg: DictConfig):

@@ -97,9 +97,9 @@ def train_epoch_func(solver: "solver.Solver", epoch_id: int, log_freq: int):
 
             reader_cost += time.perf_counter() - reader_tic
 
-            for v in input_dict.values():
-                if hasattr(v, "stop_gradient"):
-                    v.stop_gradient = False
+            # for v in input_dict.values():
+            #     if hasattr(v, "stop_gradient"):
+            #         v.stop_gradient = False
 
             # gather each constraint's input, label, weight to a list
             input_dicts.append(input_dict)

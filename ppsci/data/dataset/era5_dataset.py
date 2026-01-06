@@ -102,7 +102,7 @@ class ERA5Dataset(io.Dataset):
         for path_ in paths:
             _file = h5py.File(path_, "r")
             files.append(_file[var])
-        return files
+        return files * 1000
 
     def __len__(self):
         return self.num_samples // self.stride
