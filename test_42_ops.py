@@ -328,13 +328,35 @@ def test_irfft2():
     print(f"二维逆FFT结果:\n{result.numpy()}")
 
 
-def test_eig():
-    """测试计算一般方阵的特征值与特征向量"""
-    print("\n=== 测试 paddle.linalg.eig ===")
+# def test_eig():
+#     """测试计算一般方阵的特征值与特征向量"""
+#     print("\n=== 测试 paddle.linalg.eig ===")
+#     x = paddle.to_tensor([[1.0, 2.0], [3.0, 4.0]], dtype="float32")
+#     eigenvalues, eigenvectors = paddle.linalg.eig(x)
+#     print(f"特征值: {eigenvalues.numpy()}")
+#     print(f"特征向量:\n{eigenvectors.numpy()}")
+
+
+def test_norm():
+    """测试 paddle.linalg.norm 的基本用法"""
+    print("\n=== 测试 paddle.linalg.norm ===")
     x = paddle.to_tensor([[1.0, 2.0], [3.0, 4.0]], dtype="float32")
-    eigenvalues, eigenvectors = paddle.linalg.eig(x)
-    print(f"特征值: {eigenvalues.numpy()}")
-    print(f"特征向量:\n{eigenvectors.numpy()}")
+
+    # 默认：Frobenius 范数（对矩阵）
+    norm_default = paddle.linalg.norm(x)
+    print(f"默认范数 (Frobenius): {norm_default.numpy()}")
+
+    # 向量 2-范数（对展开后的张量等价）
+    norm_2 = paddle.linalg.norm(x, ord=2)
+    print(f"2-范数: {norm_2.numpy()}")
+
+    # 1-范数（矩阵 1-范数：列和最大值）
+    norm_1 = paddle.linalg.norm(x, ord=1)
+    print(f"1-范数: {norm_1.numpy()}")
+
+    # 无穷范数（矩阵无穷范数：行和最大值）
+    norm_inf = paddle.linalg.norm(x, ord=paddle.inf)
+    print(f"∞-范数: {norm_inf.numpy()}")
 
 
 def test_ppsci_fractional_diff():
@@ -461,7 +483,8 @@ def main():
         test_slice_complex,
         test_rfft2,
         test_irfft2,
-        test_eig,
+        # test_eig,
+        test_norm,
         test_ppsci_fractional_diff,
         test_ppsci_montecarlo_integrate,
         test_ppsci_gaussian_integrate,
