@@ -172,6 +172,7 @@ def train(cfg: DictConfig):
         ITERS_PER_EPOCH,
         eval_during_train=False,
         seed=cfg.seed,
+        update_freq=100,
         # validator=validator,
         compute_metric_by_batch=cfg.EVAL.compute_metric_by_batch,
         eval_with_no_grad=cfg.EVAL.eval_with_no_grad,
