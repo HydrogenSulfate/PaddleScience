@@ -484,7 +484,7 @@ def main():
         test_rfft2,
         test_irfft2,
         # test_eig,
-        # test_norm,
+        test_norm,
         test_ppsci_fractional_diff,
         test_ppsci_montecarlo_integrate,
         test_ppsci_gaussian_integrate,
