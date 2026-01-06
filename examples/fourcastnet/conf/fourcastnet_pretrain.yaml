@@ -57,6 +57,7 @@ MODEL:
 
 # training settings
 TRAIN:
+  num_workers: 8
   epochs: 1
   save_freq: 20
   eval_during_train: false

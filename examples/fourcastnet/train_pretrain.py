@@ -77,7 +77,7 @@ def train(cfg: DictConfig):
                 "shuffle": True,
             },
             "batch_size": cfg.TRAIN.batch_size,
-            "num_workers": 8,
+            "num_workers": cfg.TRAIN.num_workers,
         }
     else:
         NUM_GPUS_PER_NODE = 8
