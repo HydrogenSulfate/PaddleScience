@@ -632,7 +632,9 @@ def test_extformer_moe(global_env):
 @pytest.mark.skip(reason="Commented out in original script")
 def test_fourcastnet(global_env):
     commands = [
-        "python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log",
+        "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/FourcastNet/datasets.zip",
+        "unzip -o datasets.zip",
+        "python train_pretrain.py 2>&1 | tee fourcastnet.log",
     ]
     run_cmds(commands, cwd="examples/allen_cahn/", env=global_env)
 
