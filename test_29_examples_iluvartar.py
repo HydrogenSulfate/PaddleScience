@@ -17,6 +17,12 @@ def global_env():
 
     # Set explicit environment variables from the script
     env["LD_PRELOAD"] = "/usr/local/corex-4.3.8/lib64/libcuda.so.1"
+    env["LD_LIBRARY_PATH"] = ":".join(
+        [
+            env["LD_LIBRARY_PATH"],
+            "/work/PaddleCustomDevice/Paddle/build/third_party/install/magma/lib/lib/",
+        ]
+    )
     env["PADDLE_XCCL_BACKEND"] = "iluvatar_gpu"
 
     # Handle PYTHONPATH: append current working directory
@@ -568,10 +574,14 @@ def test_extformer_moe(global_env):
 
 
 # --- zh/examples/fourcastnet.md ---
-@pytest.mark.skip(reason="Commented out in original script")
+# @pytest.mark.skip(reason="Commented out in original script")
 def test_fourcastnet(global_env):
-    commands = ["python allen_cahn_piratenet.py 2>&1 | tee allen_cahn.log"]
-    run_cmds(commands, cwd="examples/allen_cahn/", env=global_env)
+    commands = [
+        "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/FourcastNet/datasets.zip",
+        "unzip -o datasets.zip",
+        "python train_pretrain.py 2>&1 | tee fourcastnet.log",
+    ]
+    run_cmds(commands, cwd="examples/fourcastnet/", env=global_env)
 
 
 # --- zh/examples/nowcastnet.md ---
@@ -794,7 +804,7 @@ def test_tadf(global_env):
     # We run commands in 'examples/tadf/TADF_Est' directly.
     commands = [
         "wget -c https://paddle-org.bj.bcebos.com/paddlescience/datasets/TADF/Est/Est.dat https://paddle-org.bj.bcebos.com/paddlescience/datasets/TADF/smis.txt",
-        "python -m pip install -r requirements.txt",
+        "python -m pip install -r ../requirements.txt",
         "python Est.py mode=train 2>&1 | tee tadf.log",
     ]
     run_cmds(commands, cwd="examples/tadf/TADF_Est", env=global_env)
