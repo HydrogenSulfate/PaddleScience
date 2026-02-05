@@ -9,11 +9,7 @@ paddle.framework.core.set_prim_eager_enabled(True)
 
 def check_accuracy(paddle_result, numpy_result, test_name, rtol=1e-3):
     """检查paddle和numpy结果的精度"""
-    paddle_np = (
-        paddle_result.numpy()
-        if isinstance(paddle_result, paddle.Tensor)
-        else paddle_result
-    )
+    paddle_np = paddle_result.numpy()
     if np.iscomplexobj(paddle_np) or np.iscomplexobj(numpy_result):
         # 对于复数，分别比较实部和虚部
         real_close = np.allclose(paddle_np.real, numpy_result.real, rtol=rtol)
