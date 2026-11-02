@@ -16,7 +16,7 @@
         flex-wrap: wrap;
     }
     .card {
-        font-family: 'Noto Serif SC', sans-serif;
+        font-family: 'Inter', sans-serif;
         border-radius: 10px;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         color: black;

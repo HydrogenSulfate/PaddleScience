@@ -268,8 +268,8 @@ class ClimaX(base.Arch):
                 holds the lead times `[B]` or `[B, 1]`.
 
         Returns:
-            Dict[str, paddle.Tensor]: Predicted weather/climate variables
-                `[B, Vo, H, W]` keyed by the first output key.
+            output_dict (Dict[str, paddle.Tensor]): Predicted weather/climate
+                variables `[B, Vo, H, W]` keyed by the first output key.
         """
         if self._input_transform is not None:
             input_dict = self._input_transform(input_dict)

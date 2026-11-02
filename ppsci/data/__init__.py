@@ -131,8 +131,14 @@ def build_dataloader(_dataset, cfg):
         dataloader_ = pgl_data.Dataloader(
             dataset=_dataset,
             batch_size=cfg["batch_size"],
-            drop_last=sampler_cfg.get("drop_last", False),
-            shuffle=sampler_cfg.get("shuffle", False),
+            drop_last=(
+                sampler_cfg.get("drop_last", False)
+                if sampler_cfg is not None
+                else False
+            ),
+            shuffle=(
+                sampler_cfg.get("shuffle", False) if sampler_cfg is not None else False
+            ),
             num_workers=cfg.get("num_workers", _DEFAULT_NUM_WORKERS),
             collate_fn=collate_fn,
         )
@@ -155,7 +161,7 @@ def build_dataloader(_dataset, cfg):
             cfg.get("auto_collation", not getattr(_dataset, "batch_index", False))
             is False
         ):
-            if "transforms" in cfg["dataset"] and "auto_collation" not in cfg:
+            if "transforms" in cfg.get("dataset", {}) and "auto_collation" not in cfg:
                 logger.warning(
                     "'transforms' and batch indexing(auto_collation=False) are both "
                     "enabled. If you do want to apply transforms to the batch samples, "
@@ -199,9 +205,15 @@ def build_dataloader(_dataset, cfg):
         )
 
     if len(dataloader_) == 0:
+        _batch_size = (
+            sampler_cfg["batch_size"] if sampler_cfg is not None else cfg["batch_size"]
+        )
+        _drop_last = (
+            sampler_cfg.get("drop_last", False) if sampler_cfg is not None else False
+        )
         raise ValueError(
-            f"batch_size({sampler_cfg['batch_size']}) should not bigger than number of "
-            f"samples({len(_dataset)}) when drop_last is {sampler_cfg.get('drop_last', False)}."
+            f"batch_size({_batch_size}) should not bigger than number of "
+            f"samples({len(_dataset)}) when drop_last is {_drop_last}."
         )
 
     return dataloader_

@@ -276,7 +276,14 @@ class ContinuousNamedArrayDataset(io.IterableDataset):
         def to_tensor_dict(_dict):
             if _dict is None:
                 return None
-            return {k: paddle.to_tensor(v) for k, v in _dict.items()}
+            # Keep tensors produced by input/label callbacks on their current
+            # device. Calling paddle.to_tensor on an existing tensor can
+            # allocate/copy again, which is especially expensive for
+            # continuously generated GPU batches.
+            return {
+                k: v if paddle.is_tensor(v) else paddle.to_tensor(v)
+                for k, v in _dict.items()
+            }
 
         while True:
             input_batch = self.input_fn()

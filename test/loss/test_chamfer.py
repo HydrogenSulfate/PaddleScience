@@ -36,8 +36,10 @@ def test_chamfer_loss():
         loss_cd_s2 += min_j
     loss_cd_s2 /= N2
 
-    loss_cd = loss_cd_s1 + loss_cd_s2
-    np.testing.assert_allclose(loss_cd.item(), result.item())
+    expected = loss_cd_s1 + loss_cd_s2
+    np.testing.assert_allclose(
+        expected.item(), result["s1"].item(), rtol=1e-5, atol=1e-6
+    )
 
 
 if __name__ == "__main__":

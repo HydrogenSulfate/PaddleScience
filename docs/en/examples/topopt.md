@@ -293,7 +293,7 @@ examples/topopt/topopt.py:77:111
 
 ### 3.10 Evaluation Model
 
-For the four trained models, different channel samplers are used respectively (the second dimension of the original data corresponds to the 100-step output result of the SIMP algorithm, uniformly taking the 5th, 10th, 15th, 20th, ..., 80th channels of the second dimension of the original data and their corresponding gradient information as new inputs to construct the evaluation dataset) for evaluation. During each evaluation, only `cfg.EVAL.num_val_step` bacth data are taken to calculate their average Binary Accuracy and IoU metrics; at the same time, the evaluation result needs to be compared with the threshold judgment result of the input data itself (0.5 as the threshold). Please refer to [Complete Code](#4) for specific code.
+For the four trained models, different channel samplers are used respectively (the second dimension of the original data corresponds to the 100-step output result of the SIMP algorithm, uniformly taking the 5th, 10th, 15th, 20th, ..., 80th channels of the second dimension of the original data and their corresponding gradient information as new inputs to construct the evaluation dataset) for evaluation. During each evaluation, only `cfg.EVAL.num_val_step` bacth data are taken to calculate their average Binary Accuracy and IoU metrics; at the same time, the evaluation result needs to be compared with the threshold judgment result of the input data itself (0.5 as the threshold). Please refer to [Complete Code](#4-complete-code) for specific code.
 
 #### 3.10.1 Validator Construction
 
@@ -305,7 +305,7 @@ examples/topopt/topopt.py:218:245
 --8<--
 ```
 
-The validator configuration is similar to the setting of [Constraint Construction](#35). In the reading configuration, `"num_workers": 0` means single-thread reading; evaluation metric `"metric"` is custom evaluation metric, including Binary Accuracy and IoU.
+The validator configuration is similar to the setting of [Constraint Construction](#35-constraint-construction). In the reading configuration, `"num_workers": 0` means single-thread reading; evaluation metric `"metric"` is custom evaluation metric, including Binary Accuracy and IoU.
 
 ### 3.11 Evaluation Result Visualization
 

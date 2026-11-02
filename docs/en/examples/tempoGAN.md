@@ -191,7 +191,7 @@ The first parameter of `SupervisedConstraint` is the reading configuration of su
 1. `name`: Dataset type, here `NamedArrayDataset` represents dataset of `.mat` type read from Array;
 2. `input`: Input data of Array type;
 3. `label`: Label data of Array type;
-4. `transforms`: All data transform methods, here `FunctionalTransform` is a custom data transform class reserved by PaddleScience, which supports custom transform of input data when writing code. For specific code, please refer to [Custom loss and data transform](#38-loss-data-transform);
+4. `transforms`: All data transform methods, here `FunctionalTransform` is a custom data transform class reserved by PaddleScience, which supports custom transform of input data when writing code. For specific code, please refer to [Custom loss and data transform](#38-custom-loss-and-data-transform);
 
 `batch_size` field represents the size of batch;
 
@@ -201,7 +201,7 @@ The first parameter of `SupervisedConstraint` is the reading configuration of su
 2. `drop_last`: Whether to discard the last samples that cannot make up a mini-batch, default is False;
 3. `shuffle`: Whether to shuffle the order when generating sample subscripts, default is False;
 
-The second parameter is the loss function. Here `FunctionalLoss` is a custom loss function class reserved by PaddleScience, which supports custom loss calculation method when writing code, rather than using existing methods such as `MSE`. For specific code, please refer to [Custom loss and data transform](#38-loss-data-transform).
+The second parameter is the loss function. Here `FunctionalLoss` is a custom loss function class reserved by PaddleScience, which supports custom loss calculation method when writing code, rather than using existing methods such as `MSE`. For specific code, please refer to [Custom loss and data transform](#38-custom-loss-and-data-transform).
 
 The third parameter is `output_expr` of the constraint condition. As mentioned above, it is to allow the program to use input data as `label`.
 
@@ -223,7 +223,7 @@ examples/tempoGAN/tempoGAN.py:164:201
 --8<--
 ```
 
-The meaning of each parameter is the same as [Constraints of Generator](#361-generator).
+The meaning of each parameter is the same as [Constraints of Generator](#361-constraints-of-generator).
 
 #### 3.6.3 Constraints of Discriminator_tempo
 
@@ -233,7 +233,7 @@ examples/tempoGAN/tempoGAN.py:205:244
 --8<--
 ```
 
-The meaning of each parameter is the same as [Constraints of Generator](#361-generator).
+The meaning of each parameter is the same as [Constraints of Generator](#361-constraints-of-generator).
 
 ### 3.7 Visualizer Construction
 
@@ -281,7 +281,7 @@ examples/tempoGAN/functions.py:412:428
 
 #### 3.8.4 Custom data transform
 
-This problem provides an input data processing method, randomly cropping a piece of input fluid density data, then judging the density value. If the density value of the cropped block is lower than the threshold, it is re-cropped until the density meets the condition or the number of cropping times reaches the threshold. This is mainly done to reduce the video memory required for training, and the judgment of the block density value ensures the richness of information in the block. In [Parameter and Hyperparameter Setting](#34), `tile_ratio` indicates how many times the original size is compared to the block size, that is, if `tile_ratio` is 2, the size of the cropped block is one-fourth of the entire original image.
+This problem provides an input data processing method, randomly cropping a piece of input fluid density data, then judging the density value. If the density value of the cropped block is lower than the threshold, it is re-cropped until the density meets the condition or the number of cropping times reaches the threshold. This is mainly done to reduce the video memory required for training, and the judgment of the block density value ensures the richness of information in the block. In [Parameter and Hyperparameter Setting](#34-parameter-and-hyperparameter-setting), `tile_ratio` indicates how many times the original size is compared to the block size, that is, if `tile_ratio` is 2, the size of the cropped block is one-fourth of the entire original image.
 
 ``` py linenums="431"
 --8<--
@@ -301,7 +301,7 @@ examples/tempoGAN/tempoGAN.py:247:258
 --8<--
 ```
 
-Note that the GAN type network training method is alternating training of multiple models, which is different from single model or multi-model phased training, and `solver.train` API cannot be simply used. For specific code, please refer to tempoGAN.py file in [Complete Code](#4).
+Note that the GAN type network training method is alternating training of multiple models, which is different from single model or multi-model phased training, and `solver.train` API cannot be simply used. For specific code, please refer to tempoGAN.py file in [Complete Code](#4-complete-code).
 
 ### 3.10 Model Evaluation
 
@@ -321,7 +321,7 @@ examples/tempoGAN/tempoGAN.py:307:323
 --8<--
 ```
 
-For specific code, please refer to tempoGAN.py file in [Complete Code](#4).
+For specific code, please refer to tempoGAN.py file in [Complete Code](#4-complete-code).
 
 #### 3.10.2 Evaluation in eval
 
@@ -379,7 +379,7 @@ After using mixed precision training, evaluate MSE, PSNR, SSIM between target on
 | :---: | :---: | :---: |
 | 4.21e-5 | 47.19 | 0.9974 |
 
-The input of a fluid super-resolution example, model prediction result, and result directly generated by open source code package mantaflow in [Dataset Introduction](#31) are as follows. The model prediction result is basically consistent with the generated target result.
+The input of a fluid super-resolution example, model prediction result, and result directly generated by open source code package mantaflow in [Dataset Introduction](#31-dataset-introduction) are as follows. The model prediction result is basically consistent with the generated target result.
 
 <figure markdown>
   ![input](https://paddle-org.bj.bcebos.com/paddlescience/docs/tempoGAN/input.gif){ loading=lazy }

@@ -313,7 +313,7 @@ class MolGraph:
         self.is_adding_hs = self.Featuri.is_adding_hs(self.is_mol)
         self.is_reaction = self.Featuri.is_reaction(self.is_mol)
         self.reaction_mode = self.Featuri.reaction_mode()
-        if type(mol) == str:
+        if isinstance(mol, str):
             if self.is_reaction:
                 mol = self.Featuri.make_mol(
                     mol.split(">")[0], self.is_explicit_h, self.is_adding_hs

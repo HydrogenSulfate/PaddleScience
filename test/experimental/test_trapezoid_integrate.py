@@ -21,8 +21,6 @@ from typing_extensions import Literal
 
 from ppsci.experimental import trapezoid_integrate
 
-paddle.seed(1024)
-
 
 def trapezoid_sum_test(y, x, dx):
     dx = 1 if not dx else dx

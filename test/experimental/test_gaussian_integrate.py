@@ -21,8 +21,6 @@ import pytest
 
 from ppsci.experimental import gaussian_integrate
 
-paddle.seed(1024)
-
 
 @pytest.mark.parametrize(
     "fn,dim,integration_domains,antideriv_func",

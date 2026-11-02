@@ -35,8 +35,6 @@ from matplotlib import pyplot as plt
 from paddle import distributed as dist
 from paddle.incubate.distributed.models.moe.moe_layer import AllGather
 
-from ppsci.utils import logger
-
 __all__ = [
     "AverageMeter",
     "PrettyOrderedDict",
@@ -58,6 +56,33 @@ __all__ = [
     "plot_curve",
     "check_flag_enabled",
 ]
+
+
+def run_at_rank0(func: Callable) -> Callable:
+    """Run a function only on rank 0.
+
+    Args:
+        func (Callable): Function to wrap.
+
+    Returns:
+        Callable: Wrapped function. It returns ``None`` on non-zero ranks.
+
+    Examples:
+        >>> import paddle
+        >>> from ppsci.utils import misc
+        >>> @misc.run_at_rank0
+        ... def func():
+        ...     print(f"now_rank is {paddle.distributed.get_rank()}")
+        >>> func()
+        now_rank is 0
+    """
+
+    @functools.wraps(func)
+    def wrapped_func(*args, **kwargs):
+        if dist.get_rank() == 0:
+            return func(*args, **kwargs)
+
+    return wrapped_func
 
 
 class AverageMeter:
@@ -247,6 +272,8 @@ class Synchronized(ContextDecorator):
 
     def __init__(self, enabled: bool = True):
         if enabled and not dist.is_initialized():
+            from ppsci.utils import logger
+
             logger.warning(
                 "Distributed environment is not initialized, but `Synchronized` is enabled. "
                 "This may cause unexpected behavior. Please ensure distributed environment is properly initialized "
@@ -313,6 +340,8 @@ class Timer(ContextDecorator):
         self.end_time = time.perf_counter()
         self.interval = self.end_time - self.start_time
         if self.auto_print:
+            from ppsci.utils import logger
+
             logger.message(f"{self.name}.time_cost = {self.interval * 1000:.2f} ms")
 
     def start(self, name: str = "Timer"):
@@ -330,6 +359,8 @@ class Timer(ContextDecorator):
         self.end_time = time.perf_counter()
         self.interval = self.end_time - self.start_time
         if self.auto_print:
+            from ppsci.utils import logger
+
             logger.message(f"{self.name}.time_cost = {self.interval:.2f} s")
 
 
@@ -644,35 +675,6 @@ def run_on_eval_mode(func: Callable) -> Callable:
         return result
 
     return function_with_eval_state
-
-
-def run_at_rank0(func: Callable) -> Callable:
-    """A decorator that allow given function run only at rank 0 to avoid
-    multiple logs or other events. Usually effected in distributed environment.
-
-    Args:
-        func (Callable): Given function.
-
-    Returns:
-        Callable: Wrapped function which will only run at at rank 0,
-            skipped at other rank.
-
-    Examples:
-        >>> import paddle
-        >>> from ppsci.utils import misc
-        >>> @misc.run_at_rank0
-        ... def func():
-        ...     print(f"now_rank is {paddle.distributed.get_rank()}")
-        >>> func()
-        now_rank is 0
-    """
-
-    @functools.wraps(func)
-    def wrapped_func(*args, **kwargs):
-        if dist.get_rank() == 0:
-            return func(*args, **kwargs)
-
-    return wrapped_func
 
 
 def plot_curve(

@@ -4,11 +4,10 @@ import pytest
 
 import ppsci
 
-paddle.seed(42)
-np.random.seed(42)
-
 
 def test_equation_detach():
+    # Keep initialization deterministic regardless of which test modules were
+    # imported (and seeded) during collection.
     # use N-S equation for test
     all_items = [
         "u",

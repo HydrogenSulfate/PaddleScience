@@ -197,8 +197,8 @@ class MSELossWithL2Decay(MSELoss):
     $$
     L =
     \begin{cases}
-        \dfrac{1}{N} \Vert {\mathbf{x}-\mathbf{y}} \Vert_2^2 + \displaystyle\sum_{i=1}^{M}{\Vert \mathbf{K_i} \Vert_F^2}, & \text{if reduction='mean'} \\
-         \Vert {\mathbf{x}-\mathbf{y}} \Vert_2^2 + \displaystyle\sum_{i=1}^{M}{\Vert \mathbf{K_i} \Vert_F^2}, & \text{if reduction='sum'}
+        \dfrac{1}{N} \Vert {\mathbf{x}-\mathbf{y}} \Vert_2^2 + \displaystyle\sum_{i=1}^{M}{\lambda_i \Vert \mathbf{K_i} \Vert_F^2}, & \text{if reduction='mean'} \\
+         \Vert {\mathbf{x}-\mathbf{y}} \Vert_2^2 + \displaystyle\sum_{i=1}^{M}{\lambda_i \Vert \mathbf{K_i} \Vert_F^2}, & \text{if reduction='sum'}
     \end{cases}
     $$
 
@@ -206,39 +206,47 @@ class MSELossWithL2Decay(MSELoss):
     \mathbf{x}, \mathbf{y} \in \mathcal{R}^{N}, \mathbf{K_i} \in \mathcal{R}^{O_i \times P_i}
     $$
 
-    $M$ is the number of  which apply regularization on.
+    $\mathbf{K_i}$ is the output tensor selected by the i-th entry of
+    ``regularization_dict``, $\lambda_i$ is its coefficient, and $M$ is the number
+    of regularization terms. Regularization is always summed regardless of the
+    reduction mode. Keys in ``regularization_dict`` must not overlap with
+    ``label_dict``.
 
     Args:
         reduction (Literal["mean", "sum"], optional): Specifies the reduction to apply to the output: 'mean' | 'sum'. Defaults to "mean".
-        regularization_dict (Optional[Dict[str, float]]): Regularization dictionary. Defaults to None.
+        regularization_dict (Optional[Dict[str, float]]): Regularization dictionary. Keys must be output keys that do **not** appear in ``label_dict``; otherwise they would overwrite the corresponding data loss. Defaults to None.
         weight (Optional[Union[float, Dict[str, float]]]): Weight for loss. Defaults to None.
 
     Raises:
         ValueError: reduction should be 'mean' or 'sum'.
+        ValueError: a regularization key overlaps with a label key.
 
     Examples:
         >>> import paddle
         >>> from ppsci.loss import MSELossWithL2Decay
 
         >>> output_dict = {'u': paddle.to_tensor([[0.5, 0.9], [1.1, -1.3]]),
-        ...                'v': paddle.to_tensor([[0.5, 0.9], [1.1, -1.3]])}
+        ...                'v': paddle.to_tensor([[0.5, 0.9], [1.1, -1.3]]),
+        ...                'w': paddle.to_tensor([[0.5, 0.9], [1.1, -1.3]])}
         >>> label_dict = {'u': paddle.to_tensor([[-1.8, 1.0], [-0.2, 2.5]]),
         ...               'v': paddle.to_tensor([[0.1, 0.1], [0.1, 0.1]])}
         >>> weight = {'u': 0.8, 'v': 0.2}
-        >>> regularization_dict = {'u': 2.0}
+        >>> regularization_dict = {'w': 2.0}
         >>> loss = MSELossWithL2Decay(regularization_dict=regularization_dict, weight=weight)
         >>> result = loss(output_dict, label_dict)
         >>> print(result)
         {'u': Tensor(shape=[], dtype=float32, place=Place(gpu:0), stop_gradient=True,
-               7.91999960), 'v': Tensor(shape=[], dtype=float32, place=Place(gpu:0), stop_gradient=True,
-               0.18800001)}
+               4.28600025), 'v': Tensor(shape=[], dtype=float32, place=Place(gpu:0), stop_gradient=True,
+               0.18799999), 'w': Tensor(shape=[], dtype=float32, place=Place(gpu:0), stop_gradient=True,
+               7.91999960)}
 
-        >>> regularization_dict = {'v': 1.0}
+        >>> regularization_dict = {'w': 1.0}
         >>> loss = MSELossWithL2Decay(reduction="sum", regularization_dict=regularization_dict, weight=weight)
         >>> result = loss(output_dict, label_dict)
         >>> print(result)
         {'u': Tensor(shape=[], dtype=float32, place=Place(gpu:0), stop_gradient=True,
                17.14400101), 'v': Tensor(shape=[], dtype=float32, place=Place(gpu:0), stop_gradient=True,
+               0.75199997), 'w': Tensor(shape=[], dtype=float32, place=Place(gpu:0), stop_gradient=True,
                3.95999980)}
     """
 
@@ -262,6 +270,11 @@ class MSELossWithL2Decay(MSELoss):
 
         if self.regularization_dict is not None:
             for reg_key, reg_weight in self.regularization_dict.items():
+                if reg_key in label_dict:
+                    raise ValueError(
+                        "Keys in regularization_dict must not overlap with "
+                        f"label_dict, but got overlap: {reg_key}"
+                    )
                 loss = output_dict[reg_key].pow(2).sum()
                 losses[reg_key] = loss * reg_weight
 

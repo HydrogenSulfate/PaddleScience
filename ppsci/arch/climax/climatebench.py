@@ -179,8 +179,8 @@ class ClimaXClimateBench(ClimaX):
                 lead times `[B]` or `[B, 1]`.
 
         Returns:
-            Dict[str, paddle.Tensor]: Prediction `[B, 1, H, W]` keyed by the
-                first output key.
+            output_dict (Dict[str, paddle.Tensor]): Prediction `[B, 1, H, W]`
+                keyed by the first output key.
         """
         if self._input_transform is not None:
             input_dict = self._input_transform(input_dict)

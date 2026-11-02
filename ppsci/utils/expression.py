@@ -50,6 +50,7 @@ class ExpressionSolver(nn.Layer):
 
     def __init__(self):
         super().__init__()
+        self.nvtx_flag = False
 
     def forward(self, *args, **kwargs):
         raise NotImplementedError(

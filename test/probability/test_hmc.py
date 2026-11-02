@@ -17,8 +17,6 @@ import pytest
 
 from ppsci.probability.hmc import HamiltonianMonteCarlo
 
-paddle.seed(1024)
-
 
 @pytest.mark.parametrize("true_mean", [5.0])
 @pytest.mark.parametrize("true_std", [1.0])

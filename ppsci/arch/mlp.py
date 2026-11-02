@@ -146,7 +146,9 @@ class MLP(base.Arch):
         hidden_size (Union[int, Tuple[int, ...]]): Number of hidden size.
             An integer for all layers, or list of integer specify each layer's size.
         activation (str, optional): Name of activation function. Defaults to "tanh".
-        skip_connection (bool, optional): Whether to use skip connection. Defaults to False.
+        skip_connection (bool, optional): Whether to use skip connection. All
+            hidden layers at even indices (the skip sources) must have the same
+            width. Defaults to False.
         weight_norm (bool, optional): Whether to apply weight norm on parameter(s). Defaults to False.
         input_dim (Optional[int]): Number of input's dimension. Defaults to None.
         output_dim (Optional[int]): Number of output's dimension. Defaults to None.
@@ -217,6 +219,14 @@ class MLP(base.Arch):
                 f"hidden_size should be list of int or int, but got {type(hidden_size)}"
             )
 
+        if skip_connection:
+            skip_sizes = list(hidden_size)[0::2]
+            if len(set(skip_sizes)) > 1:
+                raise ValueError(
+                    "skip_connection=True requires all hidden sizes at even "
+                    f"layer indices (0, 2, 4, ...) to be equal, but got {skip_sizes}"
+                )
+
         # initialize FC layer(s)
         cur_size = len(self.input_keys) if input_dim is None else input_dim
         if input_dim is None and periods:
@@ -285,10 +295,8 @@ class MLP(base.Arch):
             y = linear(y)
             if self.skip_connection and i % 2 == 0:
                 if skip is not None:
-                    skip = y
                     y = y + skip
-                else:
-                    skip = y
+                skip = y
             y = self.acts[i](y)
 
         y = self.last_fc(y)
@@ -497,10 +505,8 @@ class ModifiedMLP(base.Arch):
             y = y * u + (1 - y) * v
             if self.skip_connection and i % 2 == 0:
                 if skip is not None:
-                    skip = y
                     y = y + skip
-                else:
-                    skip = y
+                skip = y
 
         y = self.last_fc(y)
 

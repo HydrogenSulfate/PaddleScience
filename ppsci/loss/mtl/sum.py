@@ -40,7 +40,7 @@ class Sum(LossAggregator):
     should_persist: ClassVar[bool] = False
 
     def __init__(self) -> None:
-        self.step = 0
+        super().__init__()
 
     def __call__(
         self, losses: Dict[str, "paddle.Tensor"], step: int = 0

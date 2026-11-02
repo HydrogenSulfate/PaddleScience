@@ -19,8 +19,6 @@ from paddle.distribution import Normal
 
 from ppsci.probability.hmc import HamiltonianMonteCarlo
 
-paddle.seed(1024)
-
 
 # Example case on Pyro
 def test_HamiltonianMonteCarlo2():

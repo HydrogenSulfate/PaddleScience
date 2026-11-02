@@ -168,7 +168,7 @@ nav:
       - ppsci.experimental: api/experimental.md
       - ppsci.probability: api/probability.md
     - deploy:
-      - deploy.python_infer: api/depoly/python_infer.md
+      - deploy.python_infer: api/deploy/python_infer.md
   - 使用指南: user_guide.md
   - 开发与复现指南:
     - 开发指南: development.md
@@ -185,7 +185,7 @@ theme:
     code: Roboto Mono
     text: Noto Serif SC
   logo: ./images/icons/paddle.png
-  favicon: ./images/icons/favcion.png
+  favicon: ./images/icons/favicon.png
   language: "zh"
   features:
     - navigation.tabs
@@ -195,7 +195,6 @@ theme:
     # - navigation.prune # disabled temporarily for rendering speed
     - navigation.top
     - search.suggest
-    - navigation.instant
     - content.code.copy
     - content.code.select
     - content.code.annotate
@@ -268,15 +267,12 @@ plugins:
             共创计划: Collaboration
             实训社区: Practice Community
   - glightbox
+  - autorefs:
+      resolve_closest: true
   - mkdocstrings:
       handlers:
         python:
-          setup_commands:
-            - import sys
-            - sys.path.append("../")
-          paths: [../ppsci]
-          selection:
-            new_path_syntax: true
+          paths: [.]
   - mkdocs-video
   - git-revision-date-localized:
       enable_creation_date: true

@@ -48,18 +48,27 @@ class ModelList(base.Arch):
         model_list: Tuple[base.Arch, ...],
     ):
         super().__init__()
-        self.input_keys = sum([model.input_keys for model in model_list], ())
-        self.input_keys = set(self.input_keys)
+        # Keep the deterministic first-seen order instead of the arbitrary
+        # iteration order of a set (which depends on PYTHONHASHSEED).
+        self.input_keys = tuple(
+            dict.fromkeys(key for model in model_list for key in model.input_keys)
+        )
 
+        output_keys = []
         output_keys_set = set()
         for model in model_list:
-            if len(output_keys_set & set(model.output_keys)):
+            keys = tuple(model.output_keys)
+            duplicate_keys = output_keys_set & set(keys)
+            if duplicate_keys:
                 raise ValueError(
                     "output_keys of model from model_list should be unique,"
-                    f"but got duplicate keys: {output_keys_set & set(model.output_keys)}"
+                    f"but got duplicate keys: {sorted(duplicate_keys)}"
                 )
-            output_keys_set = output_keys_set | set(model.output_keys)
-        self.output_keys = tuple(output_keys_set)
+            output_keys.extend(keys)
+            output_keys_set.update(keys)
+        # Keep the deterministic first-seen order instead of the arbitrary
+        # iteration order of a set (which depends on PYTHONHASHSEED).
+        self.output_keys = tuple(dict.fromkeys(output_keys))
 
         self.model_list = nn.LayerList(model_list)
 

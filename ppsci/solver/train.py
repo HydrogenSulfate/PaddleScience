@@ -92,7 +92,11 @@ def train_epoch_func(solver: "solver.Solver", epoch_id: int, log_freq: int):
                 with misc.Synchronized(solver.world_size > 1):
                     if hasattr(_constraint, "data_iter"):
                         del _constraint.data_iter
-                        gc.collect()
+                        # Preserve the distributed reader cleanup workaround
+                        # from PR #1251. Avoid full-process GC on every loader
+                        # restart in single-device training.
+                        if solver.world_size > 1:
+                            gc.collect()
                     _constraint.data_iter = iter(_constraint.data_loader)
                 input_dict, label_dict, weight_dict = next(_constraint.data_iter)
 
@@ -253,7 +257,10 @@ def train_LBFGS_epoch_func(solver: "solver.Solver", epoch_id: int, log_freq: int
                 with misc.Synchronized(solver.world_size > 1):
                     if hasattr(_constraint, "data_iter"):
                         del _constraint.data_iter
-                        gc.collect()
+                        # Keep the same distributed cleanup as train_epoch_func
+                        # (PR #1251), without full-process GC on a single device.
+                        if solver.world_size > 1:
+                            gc.collect()
                     _constraint.data_iter = iter(_constraint.data_loader)
                 input_dict, label_dict, weight_dict = next(_constraint.data_iter)
             reader_cost += time.perf_counter() - reader_tic

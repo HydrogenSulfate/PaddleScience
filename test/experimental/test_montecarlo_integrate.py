@@ -21,8 +21,6 @@ import pytest
 
 import ppsci
 
-paddle.seed(1024)
-
 
 @pytest.mark.parametrize(
     "fn, dim, N, integration_domains, expected",

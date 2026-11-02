@@ -58,7 +58,7 @@ In order to quickly understand PaddleScience, only key steps such as model const
 
 The above figure shows the overall training process. By alternately training two neural networks, the displacement network and the density network, mapping the spatial coordinate $ω$ to the equilibrium displacement $u$ and the optimal density $\rho$ respectively, the optimal material distribution is calculated. In each iteration, the displacement network is first updated by minimizing the total potential energy of the system, followed by sensitivity analysis to calculate the density space gradient, and generating the target density field $\hat{\rho}$ through sensitivity filtering. Finally, the density network is updated by minimizing the convex optimization objective function based on the mean square error between the current density and the target density.
 
-Both the displacement network and the density network are MLP networks using the SIREN activation function. For specific code, please refer to the model.py file in [Complete Code](#4).
+Both the displacement network and the density network are MLP networks using the SIREN activation function. For specific code, please refer to the model.py file in [Complete Code](#4-complete-code).
 
 ### 3.2 Parameter and Hyperparameter Setting
 
@@ -92,11 +92,11 @@ examples/ntopo/ntopo.py:44:50
 
 ### 3.4 Equation Construction
 
-As described in [Problem Definition](#2), formulas such as the elastic modulus interpolation formula are needed during model training, so equations need to be defined. For specific code, please refer to the equation.py file in [Complete Code](#4).
+As described in [Problem Definition](#2-problem-definition), formulas such as the elastic modulus interpolation formula are needed during model training, so equations need to be defined. For specific code, please refer to the equation.py file in [Complete Code](#4-complete-code).
 
 ### 3.5 Problem Construction (including loss)
 
-The computational domain of this problem is the initial geometric structure. This case provides classes for some 2D and 3D problems, which contain definitions of various parameters and conditions such as computational domain, boundary conditions, and force conditions. For specific code, please refer to the problems.py file in [Complete Code](#4).
+The computational domain of this problem is the initial geometric structure. This case provides classes for some 2D and 3D problems, which contain definitions of various parameters and conditions such as computational domain, boundary conditions, and force conditions. For specific code, please refer to the problems.py file in [Complete Code](#4-complete-code).
 
 It is worth noting that some techniques are used in this case, such as the Optimality Criteria method based on multiple batches (OC). This method requires a batch of input and output data, and then calculates the loss of this batch in some way.
 
@@ -178,11 +178,11 @@ Therefore, in this case, based on the PaddleScience code, the following are cust
 3. `Sampler` class, which defines the sampling method required by the case;
 3. `Plot` class. For geometries with symmetrical shapes, this case chooses to define only half of the symmetrical part, and then restore the complete result according to the `mirror` parameter in the problem. This class provides related processing functions;
 
-For specific code, please refer to the functions.py file in [Complete Code](#4).
+For specific code, please refer to the functions.py file in [Complete Code](#4-complete-code).
 
 ### 3.9 Model Training and Evaluation
 
-After completing the above settings, pass the instantiated objects to `ppsci.solver.Solver` in order, and then train according to the customized training process. For specific code, please refer to the ntopo.py file in [Complete Code](#4).
+After completing the above settings, pass the instantiated objects to `ppsci.solver.Solver` in order, and then train according to the customized training process. For specific code, please refer to the ntopo.py file in [Complete Code](#4-complete-code).
 
 Since topology optimization problems have no labels, multiple optimization results may be effective, so the training results need to be manually evaluated based on visual results.
 

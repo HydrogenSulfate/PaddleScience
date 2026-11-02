@@ -7,7 +7,7 @@ name = "paddlesci"
 dynamic = ["version", "dependencies"]
 description = "A library for scientific machine learning"
 readme = "README.md"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
 authors = [{ name = "PaddlePaddle" }]
 requires-python = ">=3.8"
 keywords = [
@@ -46,17 +46,18 @@ exclude = [
     "test_tipc*",
     "test*",
     "tools*",
-    "ppsci/externals*",
-    "ppsci/externals/*",
+    "ppsci.externals*",
 ]
 
 [tool.ruff]
 line-length = 88
-ignore = ["E501", "E741", "E731"]
 extend-exclude = [
     "./ppsci/geometry/inflation.py",
     "./ppsci/autodiff/__init__.py",
 ]
+
+[tool.ruff.lint]
+ignore = ["E501", "E741", "E731"]
 
 [tool.setuptools_scm]
 version_file = "ppsci/_version.py"
@@ -69,3 +70,7 @@ dependencies = { file = ["requirements.txt"] }
 
 [tool.isort]
 profile = "black"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["test"]

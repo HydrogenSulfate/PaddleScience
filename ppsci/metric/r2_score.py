@@ -33,7 +33,10 @@ class R2Score(base.Metric):
     $$
 
     Args:
-        keep_batch (bool, optional): Whether keep batch axis. Defaults to False.
+        keep_batch (bool, optional): Whether keep batch axis. If True, R^2 is
+            computed independently for every sample over all non-batch axes.
+            The same formula is used in both modes, with 1e-8 added to the
+            denominator for numerical stability. Defaults to False.
 
     Examples:
         >>> import paddle
@@ -46,14 +49,14 @@ class R2Score(base.Metric):
         >>> result = metric(output_dict, label_dict)
         >>> print(result)
         {'u': Tensor(shape=[], dtype=float32, place=Place(gpu:0), stop_gradient=True,
-               -3.75000000), 'v': Tensor(shape=[], dtype=float32, place=Place(gpu:0), stop_gradient=True,
-               0.00000000)}
+               -1.14998746), 'v': Tensor(shape=[], dtype=float32, place=Place(gpu:0), stop_gradient=True,
+               -375999968.)}
         >>> metric = R2Score(keep_batch=True)
         >>> result = metric(output_dict, label_dict)
         >>> print(result)
         {'u': Tensor(shape=[2], dtype=float32, place=Place(gpu:0), stop_gradient=True,
-               [-0.64000008, -6.88000011]), 'v': Tensor(shape=[2], dtype=float32, place=Place(gpu:0), stop_gradient=True,
-               [0.00000000, 0.00000000])}
+               [-0.35204089, -3.42523956]), 'v': Tensor(shape=[2], dtype=float32, place=Place(gpu:0), stop_gradient=True,
+               [-79999992., -296000000.])}
     """
 
     def __init__(self, keep_batch: bool = False):
@@ -74,24 +77,19 @@ class R2Score(base.Metric):
                     f"Output and target shapes do not match for key '{key}'. Output shape: {output.shape}, Target shape: {target.shape}"
                 )
 
-            output = output.flatten()
-            target = target.flatten()
-            # Calculate mean of target along the last dimension (features)
+            if self.keep_batch:
+                output = output.reshape((output.shape[0], -1))
+                target = target.reshape((target.shape[0], -1))
+            else:
+                output = output.flatten()
+                target = target.flatten()
+
             target_mean = target.mean(axis=-1, keepdim=True)
-
-            # Calculate total sum of squares (TSS)
-            ss_tot = paddle.sum(x=(target - target_mean) ** 2)
-
-            # Calculate residual sum of squares (RSS)
-            ss_res = paddle.sum(x=(target - output) ** 2)
-
-            # Calculate R^2 score with numerical stability
+            reduce_axis = -1 if self.keep_batch else None
+            ss_tot = paddle.sum(x=(target - target_mean) ** 2, axis=reduce_axis)
+            ss_res = paddle.sum(x=(target - output) ** 2, axis=reduce_axis)
             r2 = 1 - (ss_res / (ss_tot + 1e-8))
 
-            # Handle batch-wise or mean R^2 based on self.keep_batch
-            if self.keep_batch:
-                r2score_dict[key] = r2.unsqueeze(axis=0)
-            else:
-                r2score_dict[key] = r2
+            r2score_dict[key] = r2
 
         return r2score_dict

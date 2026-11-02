@@ -17,6 +17,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from typing import ClassVar
 from typing import Dict
+from typing import Optional
 from typing import Union
 
 from paddle import nn
@@ -33,19 +34,21 @@ class LossAggregator(nn.Layer):
             Those loss aggregators with parameters and/or buffers should be persisted.
 
     Args:
-        model (nn.Layer): Training model.
+        model (Optional[nn.Layer]): Training model. Some aggregators (e.g. Sum)
+            do not need a model, so it is optional.
     """
 
     should_persist: ClassVar[bool] = False
 
-    def __init__(self, model: nn.Layer) -> None:
+    def __init__(self, model: Optional[nn.Layer] = None) -> None:
         super().__init__()
         self.model = model
         self.step = 0
         self.param_num = 0
-        for param in self.model.parameters():
-            if not param.stop_gradient:
-                self.param_num += 1
+        if self.model is not None:
+            for param in self.model.parameters():
+                if not param.stop_gradient:
+                    self.param_num += 1
 
     def forward(
         self, losses: Dict[str, "paddle.Tensor"], step: int = 0
@@ -62,6 +65,8 @@ class LossAggregator(nn.Layer):
 
     def state_dict(self):
         agg_state = super().state_dict()
+        if self.model is None:
+            return agg_state
         model_state = self.model.state_dict()
         # remove model parameters from state dict for already in pdparams
         agg_state = {k: v for k, v in agg_state.items() if k not in model_state}

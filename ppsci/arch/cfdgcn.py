@@ -118,7 +118,7 @@ def signed_dist_graph(
     return signed_dists
 
 
-def quad2tri(elems: np.array) -> Tuple[List[int], Union[List[int], paddle.Tensor]]:
+def quad2tri(elems: np.ndarray) -> Tuple[List[int], Union[List[int], paddle.Tensor]]:
     new_elems = []
     new_edges = []
     for e in elems:

@@ -516,14 +516,50 @@ class Solver:
         if not cfg:
             self.to_static = to_static
 
+        if self.to_static and isinstance(self.loss_aggregator, mtl.GradNorm):
+            raise NotImplementedError(
+                "mtl.GradNorm is currently incompatible with "
+                "to_static=True/PIR. GradNorm performs additional "
+                "backward(retain_graph=True) calls for each loss, which "
+                "cannot be safely executed on to_static graph tensors in "
+                "the current Paddle backend. Set to_static=False or use "
+                "mtl.Sum() as the loss aggregator."
+            )
+
         if self.to_static:
+            # `paddle.grad` used by symbolic derivatives is not lowerable in
+            # static graph mode without primitive op decomposition on current
+            # Paddle builds (e.g. "linear_v2_grad has no grad op").
+            has_symbolic_expr = any(
+                isinstance(expr, sp.Basic)
+                for container in (self.constraint, self.validator, self.visualizer)
+                if container
+                for item in container.values()
+                for expr in getattr(item, "output_expr", {}).values()
+            )
+            if has_symbolic_expr:
+                if hasattr(core, "_set_prim_all_enabled"):
+                    core._set_prim_all_enabled(True)
+                    logger.message(
+                        "Enabled primitive op decomposition for to_static with "
+                        "symbolic derivatives."
+                    )
+                else:
+                    logger.warning(
+                        "to_static with symbolic derivatives may fail because "
+                        "primitive op decomposition is unavailable in this "
+                        "Paddle build."
+                    )
+
             jit.enable_to_static(self.to_static)
             logger.message("Enable jit.to_static for computational optimization.")
             self.forward_helper.train_forward = paddle.jit.to_static(
-                self.forward_helper.train_forward
+                self.forward_helper.train_forward,
+                # full_graph=True,
             )
             self.forward_helper.eval_forward = paddle.jit.to_static(
-                self.forward_helper.eval_forward
+                self.forward_helper.eval_forward,
+                # full_graph=True,
             )
 
         # convert sympy to callable object if exist
@@ -963,40 +999,44 @@ class Solver:
                 copy, inspect, re, numpy, logging, six. For example, einops can be added
                 here. Defaults to None.
         """
-        if ignore_modules is not None:
-            jit.ignore_module(ignore_modules)
-
-        jit.enable_to_static(True)
-
         if self.pretrained_model_path is None:
             logger.warning(
                 "'INFER.pretrained_model_path' is not given, so the weights of exported "
                 "model will be random initialized."
             )
 
-        # convert model to static graph model
-        static_model = jit.to_static(
-            self.model,
-            input_spec=input_spec,
-            full_graph=full_graph,
-        )
+        if ignore_modules is not None:
+            jit.ignore_module(ignore_modules)
 
-        # save static graph model to disk
-        if len(osp.dirname(export_path)):
-            os.makedirs(osp.dirname(export_path), exist_ok=True)
+        jit.enable_to_static(True)
+
         try:
-            jit.save(static_model, export_path, skip_prune_program=skip_prune_program)
-        except Exception as e:
-            raise e
-        logger.message(
-            f"Inference model has been exported to: {export_path}, including "
-            + (
-                "*.json, *.pdiparams files."
-                if paddle.framework.use_pir_api()
-                else "*.pdmodel, *.pdiparams and *.pdiparams.info files."
+            # convert model to static graph model
+            static_model = jit.to_static(
+                self.model,
+                input_spec=input_spec,
+                full_graph=full_graph,
             )
-        )
-        jit.enable_to_static(False)
+
+            # save static graph model to disk
+            if len(osp.dirname(export_path)):
+                os.makedirs(osp.dirname(export_path), exist_ok=True)
+            try:
+                jit.save(
+                    static_model, export_path, skip_prune_program=skip_prune_program
+                )
+            except Exception as e:
+                raise e
+            logger.message(
+                f"Inference model has been exported to: {export_path}, including "
+                + (
+                    "*.json, *.pdiparams files."
+                    if paddle.framework.use_pir_api()
+                    else "*.pdmodel, *.pdiparams and *.pdiparams.info files."
+                )
+            )
+        finally:
+            jit.enable_to_static(False)
 
         if with_onnx:
             # TODO: support pir + onnx
